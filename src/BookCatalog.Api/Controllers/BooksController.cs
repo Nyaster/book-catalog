@@ -6,9 +6,10 @@ namespace BookCatalog.Api.Controllers;
 
 [ApiController]
 [Route("api/books")]
-public sealed class BooksController(IBookService bookService) : ControllerBase
+public sealed class BooksController(IBookService bookService, ILogger<BooksController> logger) : ControllerBase
 {
     private readonly IBookService _bookService = bookService ?? throw new ArgumentNullException(nameof(bookService));
+    private readonly ILogger<BooksController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     [HttpPost]
     [EndpointSummary("Create a book")]
@@ -20,6 +21,8 @@ public sealed class BooksController(IBookService bookService) : ControllerBase
         CreateBookRequest request,
         CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Received request to create a book.");
+
         var book = await _bookService.CreateAsync(request.ToCommand(), cancellationToken);
         var response = book.ToResponse();
 
@@ -68,6 +71,8 @@ public sealed class BooksController(IBookService bookService) : ControllerBase
         UpdateBookRequest request,
         CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Received request to update book {BookId}.", id);
+
         var book = await _bookService.UpdateAsync(id, request.ToCommand(), cancellationToken);
 
         return Ok(book.ToResponse());
@@ -80,6 +85,8 @@ public sealed class BooksController(IBookService bookService) : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Received request to delete book {BookId}.", id);
+
         await _bookService.DeleteAsync(id, cancellationToken);
 
         return NoContent();
