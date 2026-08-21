@@ -3,6 +3,7 @@ using BookCatalog.Application.Books.Services;
 using BookCatalog.Api.ErrorHandling;
 using BookCatalog.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
+using Microsoft.OpenApi;
 
 namespace BookCatalog.Api;
 
@@ -19,7 +20,20 @@ public class Program
         builder.Services.AddValidation();
         builder.Services.AddProblemDetails();
         builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-        builder.Services.AddOpenApi();
+        builder.Services.AddOpenApi(options =>
+        {
+            options.AddDocumentTransformer((document, _, _) =>
+            {
+                document.Info = new OpenApiInfo
+                {
+                    Title = "Book Catalog API",
+                    Version = "v1",
+                    Description = "A REST API for book catalog."
+                };
+
+                return Task.CompletedTask;
+            });
+        });
         builder.Services.AddSingleton<IBookRepository, InMemoryBookRepository>();
         builder.Services.AddScoped<IBookService, BookService>();
 

@@ -11,6 +11,8 @@ public sealed class BooksController(IBookService bookService) : ControllerBase
     private readonly IBookService _bookService = bookService ?? throw new ArgumentNullException(nameof(bookService));
 
     [HttpPost]
+    [EndpointSummary("Create a book")]
+    [EndpointDescription("Adds a new book to the catalog. Each book must have a unique ISBN.")]
     [ProducesResponseType<BookResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
@@ -28,6 +30,8 @@ public sealed class BooksController(IBookService bookService) : ControllerBase
     }
 
     [HttpGet]
+    [EndpointSummary("Get all books")]
+    [EndpointDescription("Returns all books ordered by title and then by author.")]
     [ProducesResponseType<IReadOnlyList<BookResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<BookResponse>>> GetAll(
         CancellationToken cancellationToken)
@@ -39,6 +43,8 @@ public sealed class BooksController(IBookService bookService) : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [EndpointSummary("Get a book by ID")]
+    [EndpointDescription("Returns the book with the specified ID.")]
     [ProducesResponseType<BookResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<BookResponse>> GetById(
@@ -51,6 +57,8 @@ public sealed class BooksController(IBookService bookService) : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [EndpointSummary("Update a book")]
+    [EndpointDescription("Replaces the details of an existing book. The ISBN must remain unique.")]
     [ProducesResponseType<BookResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
@@ -66,6 +74,8 @@ public sealed class BooksController(IBookService bookService) : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [EndpointSummary("Delete a book")]
+    [EndpointDescription("Removes the book with the specified ID from the catalog.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
