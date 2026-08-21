@@ -28,6 +28,11 @@ public class Program
         if (app.Environment.IsDevelopment())
         {
             app.MapOpenApi();
+            app.UseSwaggerUI(options =>
+            {
+                options.SwaggerEndpoint("/openapi/v1.json", "Book Catalog API v1");
+                options.DocumentTitle = "Book Catalog API";
+            });
         }
 
         app.UseExceptionHandler();
