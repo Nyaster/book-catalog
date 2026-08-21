@@ -1,5 +1,6 @@
 using BookCatalog.Application.Books.Persistence;
 using BookCatalog.Application.Books.Services;
+using BookCatalog.Api.ErrorHandling;
 using BookCatalog.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 
@@ -16,6 +17,8 @@ public class Program
             options.ModelMetadataDetailsProviders.Add(new SystemTextJsonValidationMetadataProvider());
         });
         builder.Services.AddValidation();
+        builder.Services.AddProblemDetails();
+        builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
         builder.Services.AddOpenApi();
         builder.Services.AddSingleton<IBookRepository, InMemoryBookRepository>();
         builder.Services.AddScoped<IBookService, BookService>();
@@ -27,6 +30,7 @@ public class Program
             app.MapOpenApi();
         }
 
+        app.UseExceptionHandler();
         app.UseHttpsRedirection();
 
         app.MapControllers();
