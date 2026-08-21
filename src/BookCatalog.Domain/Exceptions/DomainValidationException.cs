@@ -1,3 +1,3 @@
 namespace BookCatalog.Domain.Exceptions;
 
-public class DomainValidationException(string message) : Exception(message);
+public sealed class DomainValidationException(string message) : Exception(message);
