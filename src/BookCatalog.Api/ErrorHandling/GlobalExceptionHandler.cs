@@ -1,3 +1,4 @@
+using System.Text.Json;
 using BookCatalog.Application.Books.Exceptions;
 using BookCatalog.Domain.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
@@ -9,9 +10,6 @@ public sealed class GlobalExceptionHandler(
     IProblemDetailsService problemDetailsService,
     ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
 {
-    private readonly IProblemDetailsService _problemDetailsService = problemDetailsService;
-    private readonly ILogger<GlobalExceptionHandler> _logger = logger;
-
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
         Exception exception,
@@ -41,7 +39,7 @@ public sealed class GlobalExceptionHandler(
 
         if (statusCode >= StatusCodes.Status500InternalServerError)
         {
-            _logger.LogError(
+            logger.LogError(
                 exception,
                 "Unhandled request exception. StatusCode: {StatusCode}; Method: {RequestMethod}; Path: {RequestPath}; TraceId: {TraceId}",
                 statusCode,
@@ -51,7 +49,7 @@ public sealed class GlobalExceptionHandler(
         }
         else
         {
-            _logger.LogWarning(
+            logger.LogWarning(
                 "Handled request failure. StatusCode: {StatusCode}; ExceptionType: {ExceptionType}; Method: {RequestMethod}; Path: {RequestPath}; TraceId: {TraceId}; Message: {ErrorMessage}",
                 statusCode,
                 exception.GetType().Name,
@@ -63,12 +61,21 @@ public sealed class GlobalExceptionHandler(
 
         httpContext.Response.StatusCode = statusCode;
 
-        await _problemDetailsService.WriteAsync(new ProblemDetailsContext
+        var wasWritten = await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
         {
             HttpContext = httpContext,
             ProblemDetails = problemDetails,
             Exception = exception
         });
+
+        if (wasWritten) return true;
+        problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
+
+        await httpContext.Response.WriteAsJsonAsync(
+            problemDetails,
+            JsonSerializerOptions.Web,
+            "application/problem+json",
+            cancellationToken);
 
         return true;
     }
