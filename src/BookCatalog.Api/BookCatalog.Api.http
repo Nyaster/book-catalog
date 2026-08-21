@@ -1,0 +1,98 @@
+@host = http://localhost:5113
+
+# Run the API with the HTTP launch profile before sending these requests.
+# Run "Create a book" first. Its response stores the generated ID in {{bookId}}
+# for the get, update, and delete examples.
+# Restart the API to reset the in-memory catalog before repeating the full flow.
+
+### Create a book
+# @name createBook
+POST {{host}}/api/books
+Accept: application/json
+Content-Type: application/json
+
+{
+  "title": "Clean Code",
+  "author": "Robert C. Martin",
+  "isbn": "978-0-13-235088-4",
+  "publicationYear": 2008,
+  "description": "A handbook of agile software craftsmanship."
+}
+
+> {%
+    client.global.set("bookId", response.body.id);
+%}
+
+### Create a book with a duplicate ISBN — returns 409 Conflict
+POST {{host}}/api/books
+Accept: application/problem+json
+Content-Type: application/json
+
+{
+  "title": "Another Clean Code",
+  "author": "Example Author",
+  "isbn": "9780132350884",
+  "publicationYear": 2020,
+  "description": null
+}
+
+### Get all books
+GET {{host}}/api/books
+Accept: application/json
+
+### Get the created book
+GET {{host}}/api/books/{{bookId}}
+Accept: application/json
+
+### Update the created book
+PUT {{host}}/api/books/{{bookId}}
+Accept: application/json
+Content-Type: application/json
+
+{
+  "title": "Clean Code — Updated",
+  "author": "Robert C. Martin",
+  "isbn": "9780132350884",
+  "publicationYear": 2008,
+  "description": "Updated catalog description."
+}
+
+### Delete the created book
+DELETE {{host}}/api/books/{{bookId}}
+
+### Get the deleted book — returns 404 Not Found
+GET {{host}}/api/books/{{bookId}}
+Accept: application/problem+json
+
+### Create a book without required fields — returns 400 with validation errors
+POST {{host}}/api/books
+Accept: application/problem+json
+Content-Type: application/json
+
+{}
+
+### Create a book with an invalid ISBN — returns 400 Bad Request
+POST {{host}}/api/books
+Accept: application/problem+json
+Content-Type: application/json
+
+{
+  "title": "Invalid ISBN Example",
+  "author": "Example Author",
+  "isbn": "not-an-isbn",
+  "publicationYear": 2020,
+  "description": null
+}
+
+### Create a book with a future publication year — returns 400 Bad Request
+POST {{host}}/api/books
+Accept: application/problem+json
+Content-Type: application/json
+
+{
+  "title": "Future Book",
+  "author": "Example Author",
+  "isbn": "9780201616224",
+  "publicationYear": 2099,
+  "description": null
+}

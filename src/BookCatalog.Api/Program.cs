@@ -1,3 +1,9 @@
+using BookCatalog.Application.Books.Persistence;
+using BookCatalog.Application.Books.Services;
+using BookCatalog.Api.ErrorHandling;
+using BookCatalog.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
+
 namespace BookCatalog.Api;
 
 public class Program
@@ -6,24 +12,26 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Add services to the container.
-
-        builder.Services.AddControllers();
-        // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+        builder.Services.AddControllers(options =>
+        {
+            options.ModelMetadataDetailsProviders.Add(new SystemTextJsonValidationMetadataProvider());
+        });
+        builder.Services.AddValidation();
+        builder.Services.AddProblemDetails();
+        builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
         builder.Services.AddOpenApi();
+        builder.Services.AddSingleton<IBookRepository, InMemoryBookRepository>();
+        builder.Services.AddScoped<IBookService, BookService>();
 
         var app = builder.Build();
 
-        // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
         {
             app.MapOpenApi();
         }
 
+        app.UseExceptionHandler();
         app.UseHttpsRedirection();
-
-        app.UseAuthorization();
-
 
         app.MapControllers();
 
