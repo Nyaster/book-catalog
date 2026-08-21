@@ -2,12 +2,16 @@ using BookCatalog.Application.Books.Contracts;
 using BookCatalog.Application.Books.Exceptions;
 using BookCatalog.Application.Books.Persistence;
 using BookCatalog.Domain.Entities;
+using Microsoft.Extensions.Logging;
 
 namespace BookCatalog.Application.Books.Services;
 
-public sealed class BookService(IBookRepository bookRepository) : IBookService
+public sealed class BookService(IBookRepository bookRepository, ILogger<BookService> logger) : IBookService
 {
-    private readonly IBookRepository _bookRepository = bookRepository ?? throw new ArgumentNullException(nameof(bookRepository));
+    private readonly IBookRepository _bookRepository =
+        bookRepository ?? throw new ArgumentNullException(nameof(bookRepository));
+
+    private readonly ILogger<BookService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public async Task<BookDto> CreateAsync(
         CreateBookCommand command,
@@ -29,6 +33,8 @@ public sealed class BookService(IBookRepository bookRepository) : IBookService
         }
 
         await _bookRepository.AddAsync(book, cancellationToken);
+
+        _logger.LogInformation("Created book {BookId}.", book.Id);
 
         return MapToDto(book);
     }
@@ -65,7 +71,7 @@ public sealed class BookService(IBookRepository bookRepository) : IBookService
         cancellationToken.ThrowIfCancellationRequested();
 
         var existingBook = await GetRequiredBookAsync(id, cancellationToken);
-        
+
         var replacement = Book.Create(
             command.Title,
             command.Author,
@@ -90,6 +96,8 @@ public sealed class BookService(IBookRepository bookRepository) : IBookService
 
         await _bookRepository.UpdateAsync(existingBook, cancellationToken);
 
+        _logger.LogInformation("Updated book {BookId}.", existingBook.Id);
+
         return MapToDto(existingBook);
     }
 
@@ -105,6 +113,8 @@ public sealed class BookService(IBookRepository bookRepository) : IBookService
         {
             throw new BookNotFoundException(id);
         }
+
+        _logger.LogInformation("Deleted book {BookId}.", id);
     }
 
     private async Task<Book> GetRequiredBookAsync(Guid id, CancellationToken cancellationToken)

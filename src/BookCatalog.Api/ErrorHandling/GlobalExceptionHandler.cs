@@ -5,9 +5,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BookCatalog.Api.ErrorHandling;
 
-public sealed class GlobalExceptionHandler(IProblemDetailsService problemDetailsService) : IExceptionHandler
+public sealed class GlobalExceptionHandler(
+    IProblemDetailsService problemDetailsService,
+    ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
 {
     private readonly IProblemDetailsService _problemDetailsService = problemDetailsService;
+    private readonly ILogger<GlobalExceptionHandler> _logger = logger;
 
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
@@ -34,7 +37,31 @@ public sealed class GlobalExceptionHandler(IProblemDetailsService problemDetails
                 "The server encountered an unexpected error.")
         };
 
-        httpContext.Response.StatusCode = problemDetails.Status!.Value;
+        var statusCode = problemDetails.Status!.Value;
+
+        if (statusCode >= StatusCodes.Status500InternalServerError)
+        {
+            _logger.LogError(
+                exception,
+                "Unhandled request exception. StatusCode: {StatusCode}; Method: {RequestMethod}; Path: {RequestPath}; TraceId: {TraceId}",
+                statusCode,
+                httpContext.Request.Method,
+                httpContext.Request.Path,
+                httpContext.TraceIdentifier);
+        }
+        else
+        {
+            _logger.LogWarning(
+                "Handled request failure. StatusCode: {StatusCode}; ExceptionType: {ExceptionType}; Method: {RequestMethod}; Path: {RequestPath}; TraceId: {TraceId}; Message: {ErrorMessage}",
+                statusCode,
+                exception.GetType().Name,
+                httpContext.Request.Method,
+                httpContext.Request.Path,
+                httpContext.TraceIdentifier,
+                exception.Message);
+        }
+
+        httpContext.Response.StatusCode = statusCode;
 
         await _problemDetailsService.WriteAsync(new ProblemDetailsContext
         {
