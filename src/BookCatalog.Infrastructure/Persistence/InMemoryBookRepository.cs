@@ -1,4 +1,5 @@
 using BookCatalog.Application.Books.Persistence;
+using BookCatalog.Application.Books.Contracts;
 using BookCatalog.Domain.Entities;
 
 namespace BookCatalog.Infrastructure.Persistence;
@@ -21,18 +22,33 @@ public sealed class InMemoryBookRepository : IBookRepository
         return Task.CompletedTask;
     }
 
-    public Task<IReadOnlyList<Book>> GetAllAsync(CancellationToken cancellationToken = default)
+    public Task<PagedResult<Book>> GetPageAsync(
+        PageRequest pageRequest,
+        CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(pageRequest);
         cancellationToken.ThrowIfCancellationRequested();
-
-        Book[] books;
 
         lock (_syncRoot)
         {
-            books = _books.Values.ToArray();
-        }
+            var totalCount = _books.Count;
+            var offset = (pageRequest.Page - 1) * pageRequest.PageSize;
+            var books = offset >= totalCount
+                ? []
+                : _books.Values
+                    .OrderBy(book => book.Title, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(book => book.Author, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(book => book.Id)
+                    .Skip(offset)
+                    .Take(pageRequest.PageSize)
+                    .ToArray();
 
-        return Task.FromResult<IReadOnlyList<Book>>(books);
+            return Task.FromResult(new PagedResult<Book>(
+                books,
+                pageRequest.Page,
+                pageRequest.PageSize,
+                totalCount));
+        }
     }
 
     public Task<Book?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
