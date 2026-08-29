@@ -1,4 +1,5 @@
 using BookCatalog.Domain.Entities;
+using BookCatalog.Application.Books.Contracts;
 
 namespace BookCatalog.Application.Books.Persistence;
 
@@ -8,7 +9,8 @@ public interface IBookRepository
         Book book,
         CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<Book>> GetAllAsync(
+    Task<PagedResult<Book>> GetPageAsync(
+        PageRequest pageRequest,
         CancellationToken cancellationToken = default);
 
     Task<Book?> GetByIdAsync(
