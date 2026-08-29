@@ -34,14 +34,15 @@ public sealed class BooksController(IBookService bookService, ILogger<BooksContr
 
     [HttpGet]
     [EndpointSummary("Get books")]
-    [EndpointDescription("Returns a page of books ordered by title and then by author. Page numbering starts at 1.")]
+    [EndpointDescription(
+        "Returns a filtered page of books ordered by title and then by author. Title, author, and ISBN use partial matching; publication-year filters support exact, before, and after matches. Page numbering starts at 1.")]
     [ProducesResponseType<PagedBooksResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PagedBooksResponse>> GetPage(
         [FromQuery] GetBooksRequest request,
         CancellationToken cancellationToken)
     {
-        var books = await _bookService.GetPageAsync(request.ToPageRequest(), cancellationToken);
+        var books = await _bookService.GetPageAsync(request.ToBookListQuery(), cancellationToken);
 
         return Ok(books.ToResponse());
     }

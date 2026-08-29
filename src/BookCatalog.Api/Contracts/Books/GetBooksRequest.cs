@@ -13,4 +13,16 @@ public sealed class GetBooksRequest
 
     [Range(1, MaxPageSize, ErrorMessage = "Page size must be between 1 and 100.")]
     public int PageSize { get; init; } = DefaultPageSize;
+
+    public string? Title { get; init; }
+
+    public string? Author { get; init; }
+
+    public string? Isbn { get; init; }
+
+    public int? PublicationYear { get; init; }
+
+    public int? PublicationYearBefore { get; init; }
+
+    public int? PublicationYearAfter { get; init; }
 }
