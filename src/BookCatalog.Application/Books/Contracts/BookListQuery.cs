@@ -1,8 +1,8 @@
 namespace BookCatalog.Application.Books.Contracts;
 
-public sealed record PageRequest
+public sealed record BookListQuery
 {
-    public PageRequest(int page, int pageSize)
+    public BookListQuery(int page, int pageSize, BookFilter? filter = null)
     {
         if (page < 1)
         {
@@ -16,9 +16,12 @@ public sealed record PageRequest
 
         Page = page;
         PageSize = pageSize;
+        Filter = filter ?? BookFilter.Empty;
     }
 
     public int Page { get; }
 
     public int PageSize { get; }
+
+    public BookFilter Filter { get; }
 }
