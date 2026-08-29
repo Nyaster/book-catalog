@@ -40,7 +40,7 @@ public sealed class BookService(IBookRepository bookRepository, ILogger<BookServ
     }
 
     public async Task<PagedResult<BookDto>> GetPageAsync(
-        PageRequest pageRequest,
+        BookListQuery pageRequest,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pageRequest);

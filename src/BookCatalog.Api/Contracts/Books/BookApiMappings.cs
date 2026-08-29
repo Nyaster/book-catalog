@@ -28,11 +28,20 @@ public static class BookApiMappings
             request.Description);
     }
 
-    public static PageRequest ToPageRequest(this GetBooksRequest request)
+    public static BookListQuery ToBookListQuery(this GetBooksRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        return new PageRequest(request.Page, request.PageSize);
+        return new BookListQuery(
+            request.Page,
+            request.PageSize,
+            new BookFilter(
+                request.Title,
+                request.Author,
+                request.Isbn,
+                request.PublicationYear,
+                request.PublicationYearBefore,
+                request.PublicationYearAfter));
     }
 
     public static BookResponse ToResponse(this BookDto book)

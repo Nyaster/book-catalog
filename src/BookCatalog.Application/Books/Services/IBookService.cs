@@ -9,7 +9,7 @@ public interface IBookService
         CancellationToken cancellationToken = default);
 
     Task<PagedResult<BookDto>> GetPageAsync(
-        PageRequest pageRequest,
+        BookListQuery pageRequest,
         CancellationToken cancellationToken = default);
 
     Task<BookDto> GetByIdAsync(
