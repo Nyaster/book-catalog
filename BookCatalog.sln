@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BookCatalog.Domain", "src\B
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BookCatalog.Infrastructure", "src\BookCatalog.Infrastructure\BookCatalog.Infrastructure.csproj", "{216FEA82-8C49-4BDE-9E48-7F3521348823}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BookCatalog.UnitTests", "tests\BookCatalog.UnitTests\BookCatalog.UnitTests.csproj", "{A68DEBEC-3AA9-4917-A1BE-713057607244}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{216FEA82-8C49-4BDE-9E48-7F3521348823}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{216FEA82-8C49-4BDE-9E48-7F3521348823}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{216FEA82-8C49-4BDE-9E48-7F3521348823}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A68DEBEC-3AA9-4917-A1BE-713057607244}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A68DEBEC-3AA9-4917-A1BE-713057607244}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A68DEBEC-3AA9-4917-A1BE-713057607244}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A68DEBEC-3AA9-4917-A1BE-713057607244}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
