@@ -36,8 +36,8 @@ Content-Type: application/json
   "description": null
 }
 
-### Get all books
-GET {{host}}/api/books
+### Get books (first page)
+GET {{host}}/api/books?page=1&pageSize=20
 Accept: application/json
 
 ### Get the created book
