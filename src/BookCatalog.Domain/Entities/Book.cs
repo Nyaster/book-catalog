@@ -1,4 +1,5 @@
 using BookCatalog.Domain.Exceptions;
+using BookCatalog.Domain.ValueObjects;
 
 namespace BookCatalog.Domain.Entities;
 
@@ -88,32 +89,7 @@ public sealed class Book
 
     private static string NormalizeIsbn(string? value)
     {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            throw new DomainValidationException("ISBN is required.");
-        }
-
-        var normalized = new string(
-                value.Where(character => character != '-' && !char.IsWhiteSpace(character))
-                    .ToArray())
-            .ToUpperInvariant();
-
-        var isIsbn10 =
-            normalized.Length == 10 &&
-            normalized[..9].All(char.IsDigit) &&
-            (char.IsDigit(normalized[9]) || normalized[9] == 'X');
-
-        var isIsbn13 =
-            normalized.Length == 13 &&
-            normalized.All(char.IsDigit);
-
-        if (!isIsbn10 && !isIsbn13)
-        {
-            throw new DomainValidationException(
-                "ISBN must use the ISBN-10 or ISBN-13 format.");
-        }
-
-        return normalized;
+        return IsbnNormalizer.NormalizeRequired(value);
     }
 
     private static int ValidatePublicationYear(int? publicationYear)
