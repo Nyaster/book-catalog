@@ -23,7 +23,7 @@ public sealed class InMemoryBookRepository : IBookRepository
     }
 
     public Task<PagedResult<Book>> GetPageAsync(
-        PageRequest pageRequest,
+        BookListQuery pageRequest,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pageRequest);
@@ -31,15 +31,18 @@ public sealed class InMemoryBookRepository : IBookRepository
 
         lock (_syncRoot)
         {
-            var totalCount = _books.Count;
-            var offset = (pageRequest.Page - 1) * pageRequest.PageSize;
+            var filteredBooks = ApplyFilters(_books.Values, pageRequest.Filter)
+                .OrderBy(book => book.Title, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(book => book.Author, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(book => book.Id)
+                .ToArray();
+
+            var totalCount = filteredBooks.Length;
+            var offset = ((long)pageRequest.Page - 1) * pageRequest.PageSize;
             var books = offset >= totalCount
                 ? []
-                : _books.Values
-                    .OrderBy(book => book.Title, StringComparer.OrdinalIgnoreCase)
-                    .ThenBy(book => book.Author, StringComparer.OrdinalIgnoreCase)
-                    .ThenBy(book => book.Id)
-                    .Skip(offset)
+                : filteredBooks
+                    .Skip((int)offset)
                     .Take(pageRequest.PageSize)
                     .ToArray();
 
@@ -49,6 +52,44 @@ public sealed class InMemoryBookRepository : IBookRepository
                 pageRequest.PageSize,
                 totalCount));
         }
+    }
+
+    private static IEnumerable<Book> ApplyFilters(IEnumerable<Book> books, BookFilter filter)
+    {
+        if (filter.Title is { } title)
+        {
+            books = books.Where(book =>
+                book.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (filter.Author is { } author)
+        {
+            books = books.Where(book =>
+                book.Author.Contains(author, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (filter.Isbn is { } isbn)
+        {
+            books = books.Where(book =>
+                book.Isbn.Contains(isbn, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (filter.PublicationYear is { } publicationYear)
+        {
+            books = books.Where(book => book.PublicationYear == publicationYear);
+        }
+
+        if (filter.PublicationYearBefore is { } publicationYearBefore)
+        {
+            books = books.Where(book => book.PublicationYear < publicationYearBefore);
+        }
+
+        if (filter.PublicationYearAfter is { } publicationYearAfter)
+        {
+            books = books.Where(book => book.PublicationYear > publicationYearAfter);
+        }
+
+        return books;
     }
 
     public Task<Book?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
