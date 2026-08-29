@@ -40,6 +40,14 @@ Content-Type: application/json
 GET {{host}}/api/books?page=1&pageSize=20
 Accept: application/json
 
+### Get books with partial text, ISBN, and exact-year filters
+GET {{host}}/api/books?page=1&pageSize=20&title=clean&author=martin&isbn=978-0&publicationYear=2008
+Accept: application/json
+
+### Get books published between two years (exclusive)
+GET {{host}}/api/books?page=1&pageSize=20&publicationYearAfter=2000&publicationYearBefore=2010
+Accept: application/json
+
 ### Get the created book
 GET {{host}}/api/books/{{bookId}}
 Accept: application/json
