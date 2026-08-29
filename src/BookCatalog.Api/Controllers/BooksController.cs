@@ -33,16 +33,17 @@ public sealed class BooksController(IBookService bookService, ILogger<BooksContr
     }
 
     [HttpGet]
-    [EndpointSummary("Get all books")]
-    [EndpointDescription("Returns all books ordered by title and then by author.")]
-    [ProducesResponseType<IReadOnlyList<BookResponse>>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<BookResponse>>> GetAll(
+    [EndpointSummary("Get books")]
+    [EndpointDescription("Returns a page of books ordered by title and then by author. Page numbering starts at 1.")]
+    [ProducesResponseType<PagedBooksResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedBooksResponse>> GetPage(
+        [FromQuery] GetBooksRequest request,
         CancellationToken cancellationToken)
     {
-        var books = await _bookService.GetAllAsync(cancellationToken);
-        var response = books.Select(book => book.ToResponse()).ToArray();
+        var books = await _bookService.GetPageAsync(request.ToPageRequest(), cancellationToken);
 
-        return Ok(response);
+        return Ok(books.ToResponse());
     }
 
     [HttpGet("{id:guid}")]
