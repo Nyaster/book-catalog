@@ -121,7 +121,32 @@ public sealed class BookServiceTests
     }
 
     [Fact]
-    public async Task GetPageAsync_WhenPageRequestIsNull_ThrowsArgumentNullException()
+    public async Task GetPageAsync_ForwardsBookFilter()
+    {
+        var cancellationToken = new CancellationTokenSource().Token;
+        var repository = CreateRepositoryMock();
+        var query = new BookListQuery(
+            2,
+            10,
+            new BookFilter(
+                "clean",
+                "martin",
+                "978013",
+                2008,
+                2010,
+                2000));
+        repository
+            .Setup(repository => repository.GetPageAsync(query, cancellationToken))
+            .ReturnsAsync(new PagedResult<Book>([], 2, 10, 0));
+        var service = CreateService(repository);
+
+        await service.GetPageAsync(query, cancellationToken);
+
+        repository.Verify(repository => repository.GetPageAsync(query, cancellationToken), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetPageAsync_WhenBookListQueryIsNull_ThrowsArgumentNullException()
     {
         var service = CreateService(CreateRepositoryMock());
 
