@@ -39,18 +39,20 @@ public sealed class BookService(IBookRepository bookRepository, ILogger<BookServ
         return MapToDto(book);
     }
 
-    public async Task<IReadOnlyList<BookDto>> GetAllAsync(
+    public async Task<PagedResult<BookDto>> GetPageAsync(
+        PageRequest pageRequest,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(pageRequest);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var books = await _bookRepository.GetAllAsync(cancellationToken);
+        var books = await _bookRepository.GetPageAsync(pageRequest, cancellationToken);
 
-        return books
-            .OrderBy(book => book.Title, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(book => book.Author, StringComparer.OrdinalIgnoreCase)
-            .Select(MapToDto)
-            .ToList();
+        return new PagedResult<BookDto>(
+            books.Items.Select(MapToDto).ToArray(),
+            books.Page,
+            books.PageSize,
+            books.TotalCount);
     }
 
     public async Task<BookDto> GetByIdAsync(

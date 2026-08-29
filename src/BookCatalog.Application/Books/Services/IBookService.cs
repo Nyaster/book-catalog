@@ -8,7 +8,8 @@ public interface IBookService
         CreateBookCommand command,
         CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<BookDto>> GetAllAsync(
+    Task<PagedResult<BookDto>> GetPageAsync(
+        PageRequest pageRequest,
         CancellationToken cancellationToken = default);
 
     Task<BookDto> GetByIdAsync(

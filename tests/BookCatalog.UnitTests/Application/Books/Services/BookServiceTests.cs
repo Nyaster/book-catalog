@@ -82,24 +82,31 @@ public sealed class BookServiceTests
     }
 
     [Fact]
-    public async Task GetAllAsync_ReturnsDtosSortedByTitleThenAuthorIgnoringCase()
+    public async Task GetPageAsync_ForwardsRequestAndMapsDtosWithPaginationMetadata()
     {
+        var cancellationToken = new CancellationTokenSource().Token;
         var repository = CreateRepositoryMock();
+        var pageRequest = new PageRequest(2, 2);
         IReadOnlyList<Book> books = new List<Book>
         {
-            CreateBook("Zebra", "Author B", "9780306406157"),
-            CreateBook("alpha", "Zed", "9780306406158"),
-            CreateBook("Alpha", "Anne", "9780306406159")
+            CreateBook("Alpha", "Anne", "9780306406157"),
+            CreateBook("Zebra", "Author B", "9780306406158")
         };
         repository
-            .Setup(repository => repository.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(books);
+            .Setup(repository => repository.GetPageAsync(pageRequest, cancellationToken))
+            .ReturnsAsync(new PagedResult<Book>(books, 2, 2, 5));
         var service = CreateService(repository);
 
-        var result = await service.GetAllAsync();
+        var result = await service.GetPageAsync(pageRequest, cancellationToken);
 
+        Assert.Equal(2, result.Page);
+        Assert.Equal(2, result.PageSize);
+        Assert.Equal(5, result.TotalCount);
+        Assert.Equal(3, result.TotalPages);
+        Assert.True(result.HasPreviousPage);
+        Assert.True(result.HasNextPage);
         Assert.Collection(
-            result,
+            result.Items,
             book =>
             {
                 Assert.Equal("Alpha", book.Title);
@@ -107,14 +114,33 @@ public sealed class BookServiceTests
             },
             book =>
             {
-                Assert.Equal("alpha", book.Title);
-                Assert.Equal("Zed", book.Author);
-            },
-            book =>
-            {
                 Assert.Equal("Zebra", book.Title);
                 Assert.Equal("Author B", book.Author);
             });
+        repository.Verify(repository => repository.GetPageAsync(pageRequest, cancellationToken), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetPageAsync_WhenPageRequestIsNull_ThrowsArgumentNullException()
+    {
+        var service = CreateService(CreateRepositoryMock());
+
+        var exception = await Assert.ThrowsAsync<ArgumentNullException>(() => service.GetPageAsync(null!));
+
+        Assert.Equal("pageRequest", exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(0, 20, "page")]
+    [InlineData(1, 0, "pageSize")]
+    public void PageRequest_WhenPageOrPageSizeIsLessThanOne_ThrowsArgumentOutOfRangeException(
+        int page,
+        int pageSize,
+        string expectedParameterName)
+    {
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => new PageRequest(page, pageSize));
+
+        Assert.Equal(expectedParameterName, exception.ParamName);
     }
 
     [Fact]
@@ -301,15 +327,16 @@ public sealed class BookServiceTests
 
     [Fact]
     public async Task
-        GetAllAsync_WhenCancellationIsRequested_ThrowsOperationCanceledException_AndDoesNotAccessRepository()
+        GetPageAsync_WhenCancellationIsRequested_ThrowsOperationCanceledException_AndDoesNotAccessRepository()
     {
         using var cancellationTokenSource = new CancellationTokenSource();
         cancellationTokenSource.Cancel();
         var repository = CreateRepositoryMock();
         var service = CreateService(repository);
+        var pageRequest = new PageRequest(1, 20);
 
         var exception = await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            service.GetAllAsync(cancellationTokenSource.Token));
+            service.GetPageAsync(pageRequest, cancellationTokenSource.Token));
 
         Assert.Equal(cancellationTokenSource.Token, exception.CancellationToken);
         repository.VerifyNoOtherCalls();

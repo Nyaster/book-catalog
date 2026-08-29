@@ -28,6 +28,13 @@ public static class BookApiMappings
             request.Description);
     }
 
+    public static PageRequest ToPageRequest(this GetBooksRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        return new PageRequest(request.Page, request.PageSize);
+    }
+
     public static BookResponse ToResponse(this BookDto book)
     {
         ArgumentNullException.ThrowIfNull(book);
@@ -39,5 +46,19 @@ public static class BookApiMappings
             book.Isbn,
             book.PublicationYear,
             book.Description);
+    }
+
+    public static PagedBooksResponse ToResponse(this PagedResult<BookDto> books)
+    {
+        ArgumentNullException.ThrowIfNull(books);
+
+        return new PagedBooksResponse(
+            books.Items.Select(book => book.ToResponse()).ToArray(),
+            books.Page,
+            books.PageSize,
+            books.TotalCount,
+            books.TotalPages,
+            books.HasPreviousPage,
+            books.HasNextPage);
     }
 }
