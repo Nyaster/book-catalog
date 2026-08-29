@@ -86,7 +86,7 @@ public sealed class BookServiceTests
     {
         var cancellationToken = new CancellationTokenSource().Token;
         var repository = CreateRepositoryMock();
-        var pageRequest = new PageRequest(2, 2);
+        var pageRequest = new BookListQuery(2, 2);
         IReadOnlyList<Book> books = new List<Book>
         {
             CreateBook("Alpha", "Anne", "9780306406157"),
@@ -133,12 +133,13 @@ public sealed class BookServiceTests
     [Theory]
     [InlineData(0, 20, "page")]
     [InlineData(1, 0, "pageSize")]
-    public void PageRequest_WhenPageOrPageSizeIsLessThanOne_ThrowsArgumentOutOfRangeException(
+    public void BookListQuery_WhenPageOrPageSizeIsLessThanOne_ThrowsArgumentOutOfRangeException(
         int page,
         int pageSize,
         string expectedParameterName)
     {
-        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => new PageRequest(page, pageSize));
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new BookListQuery(page, pageSize));
 
         Assert.Equal(expectedParameterName, exception.ParamName);
     }
@@ -333,7 +334,7 @@ public sealed class BookServiceTests
         cancellationTokenSource.Cancel();
         var repository = CreateRepositoryMock();
         var service = CreateService(repository);
-        var pageRequest = new PageRequest(1, 20);
+        var pageRequest = new BookListQuery(1, 20);
 
         var exception = await Assert.ThrowsAsync<OperationCanceledException>(() =>
             service.GetPageAsync(pageRequest, cancellationTokenSource.Token));
