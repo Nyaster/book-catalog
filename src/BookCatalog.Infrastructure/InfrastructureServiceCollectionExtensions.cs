@@ -1,3 +1,4 @@
+using BookCatalog.Application.Books.Persistence;
 using BookCatalog.Infrastructure.Configuration;
 using BookCatalog.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -30,6 +31,7 @@ public static class InfrastructureServiceCollectionExtensions
 
             optionsBuilder.UseNpgsql(databaseOptions.ConnectionString);
         });
+        services.AddScoped<IBookRepository, EfCoreBookRepository>();
 
         return services;
     }

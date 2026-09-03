@@ -1,8 +1,6 @@
-using BookCatalog.Application.Books.Persistence;
 using BookCatalog.Application.Books.Services;
 using BookCatalog.Api.ErrorHandling;
 using BookCatalog.Infrastructure;
-using BookCatalog.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 using Microsoft.OpenApi;
 
@@ -36,7 +34,6 @@ public class Program
                 return Task.CompletedTask;
             });
         });
-        builder.Services.AddSingleton<IBookRepository, InMemoryBookRepository>();
         builder.Services.AddScoped<IBookService, BookService>();
 
         var app = builder.Build();
