@@ -1,6 +1,7 @@
 using BookCatalog.Application.Books.Persistence;
 using BookCatalog.Application.Books.Services;
 using BookCatalog.Api.ErrorHandling;
+using BookCatalog.Infrastructure;
 using BookCatalog.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 using Microsoft.OpenApi;
@@ -20,6 +21,7 @@ public class Program
         builder.Services.AddValidation();
         builder.Services.AddProblemDetails();
         builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+        builder.Services.AddInfrastructure(builder.Configuration);
         builder.Services.AddOpenApi(options =>
         {
             options.AddDocumentTransformer((document, _, _) =>
