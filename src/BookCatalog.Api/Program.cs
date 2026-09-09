@@ -1,3 +1,4 @@
+using BookCatalog.Application.Users.Services;
 using BookCatalog.Application.Authors.Services;
 using BookCatalog.Application.Books.Services;
 using BookCatalog.Api.ErrorHandling;
@@ -37,6 +38,7 @@ public class Program
         });
         builder.Services.AddScoped<IBookService, BookService>();
         builder.Services.AddScoped<IAuthorService, AuthorService>();
+        builder.Services.AddScoped<IUserService, UserService>();
 
         var app = builder.Build();
 
