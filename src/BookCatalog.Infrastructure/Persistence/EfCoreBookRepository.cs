@@ -17,7 +17,14 @@ public sealed class EfCoreBookRepository(BookCatalogDbContext context) : IBookRe
         cancellationToken.ThrowIfCancellationRequested();
 
         await _context.Books.AddAsync(book, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception exception) when (PersistenceErrors.IsDuplicateIsbn(exception))
+        {
+            throw new DuplicateIsbnException(book.Isbn);
+        }
     }
 
     public async Task<PagedResult<Book>> GetPageAsync(
@@ -52,7 +59,8 @@ public sealed class EfCoreBookRepository(BookCatalogDbContext context) : IBookRe
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        return _context.Books.Include(book => book.Author).SingleOrDefaultAsync(book => book.Id == id, cancellationToken);
+        return _context.Books.Include(book => book.Author)
+            .SingleOrDefaultAsync(book => book.Id == id, cancellationToken);
     }
 
     public async Task UpdateAsync(Book book, CancellationToken cancellationToken = default)
@@ -60,22 +68,29 @@ public sealed class EfCoreBookRepository(BookCatalogDbContext context) : IBookRe
         ArgumentNullException.ThrowIfNull(book);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (_context.Entry(book).State == EntityState.Detached)
+        try
         {
-            // Update only catalog fields. A detached book can carry stale availability.
-            var affected = await _context.Books.Where(existing => existing.Id == book.Id)
-                .ExecuteUpdateAsync(update => update
-                    .SetProperty(existing => existing.Title, book.Title)
-                    .SetProperty(existing => existing.AuthorId, book.AuthorId)
-                    .SetProperty(existing => existing.Isbn, book.Isbn)
-                    .SetProperty(existing => existing.PublicationYear, book.PublicationYear)
-                    .SetProperty(existing => existing.Description, book.Description), cancellationToken);
-            if (affected == 0) throw new BookNotFoundException(book.Id);
-            return;
-        }
+            if (_context.Entry(book).State == EntityState.Detached)
+            {
+                // Update only catalog fields. A detached book can carry stale availability.
+                var affected = await _context.Books.Where(existing => existing.Id == book.Id)
+                    .ExecuteUpdateAsync(update => update
+                        .SetProperty(existing => existing.Title, book.Title)
+                        .SetProperty(existing => existing.AuthorId, book.AuthorId)
+                        .SetProperty(existing => existing.Isbn, book.Isbn)
+                        .SetProperty(existing => existing.PublicationYear, book.PublicationYear)
+                        .SetProperty(existing => existing.Description, book.Description), cancellationToken);
+                if (affected == 0) throw new BookNotFoundException(book.Id);
+                return;
+            }
 
-        _context.Entry(book).Property(existing => existing.IsAvailable).IsModified = false;
-        await _context.SaveChangesAsync(cancellationToken);
+            _context.Entry(book).Property(existing => existing.IsAvailable).IsModified = false;
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception exception) when (PersistenceErrors.IsDuplicateIsbn(exception))
+        {
+            throw new DuplicateIsbnException(book.Isbn);
+        }
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
@@ -151,6 +166,7 @@ public sealed class EfCoreBookRepository(BookCatalogDbContext context) : IBookRe
             property.OriginalValue = available;
             property.IsModified = false;
         }
+
         return true;
     }
 
