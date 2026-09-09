@@ -64,7 +64,7 @@ public sealed class BooksController(IBookService bookService, ILogger<BooksContr
 
     [HttpPut("{id:guid}")]
     [EndpointSummary("Update a book")]
-    [EndpointDescription("Replaces the details of an existing book. The ISBN must remain unique.")]
+    [EndpointDescription("Replaces the details of an existing book. The ISBN must remain unique. Availability is preserved.")]
     [ProducesResponseType<BookResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
@@ -86,6 +86,7 @@ public sealed class BooksController(IBookService bookService, ILogger<BooksContr
     [EndpointDescription("Removes the book with the specified ID from the catalog.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Received request to delete book {BookId}.", id);

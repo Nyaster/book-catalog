@@ -1,3 +1,4 @@
+using BookCatalog.Application.Loans.Services;
 using BookCatalog.Application.Users.Services;
 using BookCatalog.Application.Authors.Services;
 using BookCatalog.Application.Books.Services;
@@ -39,6 +40,8 @@ public class Program
         builder.Services.AddScoped<IBookService, BookService>();
         builder.Services.AddScoped<IAuthorService, AuthorService>();
         builder.Services.AddScoped<IUserService, UserService>();
+        builder.Services.AddScoped<ILendingService, LendingService>();
+        builder.Services.AddSingleton(TimeProvider.System);
 
         var app = builder.Build();
 
