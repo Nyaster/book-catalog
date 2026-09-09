@@ -7,6 +7,7 @@ public sealed class BookCatalogDbContext(DbContextOptions<BookCatalogDbContext> 
     : DbContext(options)
 {
     public DbSet<Book> Books => Set<Book>();
+    public DbSet<Author> Authors => Set<Author>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

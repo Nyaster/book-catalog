@@ -26,17 +26,17 @@ public sealed class EfCoreBookRepository(BookCatalogDbContext context) : IBookRe
         ArgumentNullException.ThrowIfNull(pageRequest);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var filteredBooks = ApplyFilters(_context.Books.AsNoTracking(), pageRequest.Filter);
+        var filteredBooks = ApplyFilters(_context.Books.AsNoTracking().Include(book => book.Author), pageRequest.Filter);
         var totalCount = await filteredBooks.CountAsync(cancellationToken);
-        var offset = (pageRequest.Page - 1) * pageRequest.PageSize;
+        var offset = ((long)pageRequest.Page - 1) * pageRequest.PageSize;
 
         IReadOnlyList<Book> books = offset >= totalCount
             ? []
             : await filteredBooks
                 .OrderBy(book => book.Title)
-                .ThenBy(book => book.Author)
+                .ThenBy(book => book.Author.Name)
                 .ThenBy(book => book.Id)
-                .Skip(offset)
+                .Skip((int)offset)
                 .Take(pageRequest.PageSize)
                 .ToListAsync(cancellationToken);
 
@@ -51,7 +51,7 @@ public sealed class EfCoreBookRepository(BookCatalogDbContext context) : IBookRe
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        return _context.Books.SingleOrDefaultAsync(book => book.Id == id, cancellationToken);
+        return _context.Books.Include(book => book.Author).SingleOrDefaultAsync(book => book.Id == id, cancellationToken);
     }
 
     public async Task UpdateAsync(Book book, CancellationToken cancellationToken = default)
@@ -123,7 +123,7 @@ public sealed class EfCoreBookRepository(BookCatalogDbContext context) : IBookRe
         if (filter.Author is { } author)
         {
             var pattern = CreateContainsPattern(author);
-            books = books.Where(book => EF.Functions.ILike(book.Author, pattern, "\\"));
+            books = books.Where(book => EF.Functions.ILike(book.Author.Name, pattern, "\\"));
         }
 
         if (filter.Isbn is { } isbn)

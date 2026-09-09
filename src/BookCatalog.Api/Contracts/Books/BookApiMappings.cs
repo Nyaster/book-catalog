@@ -10,7 +10,7 @@ public static class BookApiMappings
 
         return new CreateBookCommand(
             request.Title,
-            request.Author,
+            request.AuthorId ?? Guid.Empty,
             request.Isbn,
             request.PublicationYear,
             request.Description);
@@ -22,7 +22,7 @@ public static class BookApiMappings
 
         return new UpdateBookCommand(
             request.Title,
-            request.Author,
+            request.AuthorId ?? Guid.Empty,
             request.Isbn,
             request.PublicationYear,
             request.Description);
@@ -54,7 +54,8 @@ public static class BookApiMappings
             book.Author,
             book.Isbn,
             book.PublicationYear,
-            book.Description);
+            book.Description,
+            book.AuthorId);
     }
 
     public static PagedBooksResponse ToResponse(this PagedResult<BookDto> books)

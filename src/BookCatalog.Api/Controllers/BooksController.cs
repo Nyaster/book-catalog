@@ -13,8 +13,9 @@ public sealed class BooksController(IBookService bookService, ILogger<BooksContr
 
     [HttpPost]
     [EndpointSummary("Create a book")]
-    [EndpointDescription("Adds a new book to the catalog. Each book must have a unique ISBN.")]
+    [EndpointDescription("Adds a new book using an existing author ID. Each book must have a unique ISBN.")]
     [ProducesResponseType<BookResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<BookResponse>> Create(
