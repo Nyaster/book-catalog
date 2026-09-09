@@ -10,6 +10,15 @@ namespace BookCatalog.Infrastructure.Persistence;
 
 internal static class PersistenceErrors
 {
+    internal static bool IsDuplicateIsbn(Exception exception)
+    {
+       
+        var postgres = exception as PostgresException
+                       ?? (exception as DbUpdateException)?.InnerException as PostgresException;
+
+        return postgres is { SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: "IX_Books_Isbn" };
+    }
+
     internal static Exception? Translate(DbUpdateException exception)
     {
         if (exception.InnerException is not PostgresException postgres) return null;
