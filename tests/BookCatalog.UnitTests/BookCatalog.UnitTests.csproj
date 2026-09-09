@@ -28,7 +28,6 @@
     <ItemGroup>
       <ProjectReference Include="..\..\src\BookCatalog.Application\BookCatalog.Application.csproj" />
       <ProjectReference Include="..\..\src\BookCatalog.Domain\BookCatalog.Domain.csproj" />
-      <ProjectReference Include="..\..\src\BookCatalog.Infrastructure\BookCatalog.Infrastructure.csproj" />
     </ItemGroup>
 
 </Project>
