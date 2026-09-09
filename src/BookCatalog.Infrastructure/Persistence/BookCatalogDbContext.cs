@@ -9,6 +9,7 @@ public sealed class BookCatalogDbContext(DbContextOptions<BookCatalogDbContext> 
     public DbSet<Book> Books => Set<Book>();
     public DbSet<Author> Authors => Set<Author>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<Loan> Loans => Set<Loan>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

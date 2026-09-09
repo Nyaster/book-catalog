@@ -1,3 +1,4 @@
+using BookCatalog.Application.Books.Exceptions;
 using BookCatalog.Application.Books.Contracts;
 using BookCatalog.Application.Books.Persistence;
 using BookCatalog.Domain.Entities;
@@ -61,18 +62,19 @@ public sealed class EfCoreBookRepository(BookCatalogDbContext context) : IBookRe
 
         if (_context.Entry(book).State == EntityState.Detached)
         {
-            var exists = await _context.Books
-                .AsNoTracking()
-                .AnyAsync(existingBook => existingBook.Id == book.Id, cancellationToken);
-
-            if (!exists)
-            {
-                throw new KeyNotFoundException($"Book with ID '{book.Id}' was not found.");
-            }
-
-            _context.Books.Update(book);
+            // Update only catalog fields. A detached book can carry stale availability.
+            var affected = await _context.Books.Where(existing => existing.Id == book.Id)
+                .ExecuteUpdateAsync(update => update
+                    .SetProperty(existing => existing.Title, book.Title)
+                    .SetProperty(existing => existing.AuthorId, book.AuthorId)
+                    .SetProperty(existing => existing.Isbn, book.Isbn)
+                    .SetProperty(existing => existing.PublicationYear, book.PublicationYear)
+                    .SetProperty(existing => existing.Description, book.Description), cancellationToken);
+            if (affected == 0) throw new BookNotFoundException(book.Id);
+            return;
         }
 
+        _context.Entry(book).Property(existing => existing.IsAvailable).IsModified = false;
         await _context.SaveChangesAsync(cancellationToken);
     }
 
@@ -90,7 +92,17 @@ public sealed class EfCoreBookRepository(BookCatalogDbContext context) : IBookRe
         }
 
         _context.Books.Remove(book);
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception)
+        {
+            var translated = PersistenceErrors.Translate(exception);
+            _context.Entry(book).State = EntityState.Unchanged;
+            if (translated is not null) throw translated;
+            throw;
+        }
 
         return true;
     }
@@ -110,6 +122,36 @@ public sealed class EfCoreBookRepository(BookCatalogDbContext context) : IBookRe
             .AnyAsync(
                 book => book.Id != excludedBookId && book.Isbn == normalizedIsbn,
                 cancellationToken);
+    }
+
+    public Task<bool> TryBorrowAsync(Guid id, CancellationToken cancellationToken = default) =>
+        TrySetAvailabilityAsync(id, true, false, cancellationToken);
+
+    public Task<bool> TryReleaseAsync(Guid id, CancellationToken cancellationToken = default) =>
+        TrySetAvailabilityAsync(id, false, true, cancellationToken);
+
+    private async Task<bool> TrySetAvailabilityAsync(Guid id, bool expected, bool available,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_context.Database.CurrentTransaction is null)
+            throw new InvalidOperationException("Availability changes must run inside IUnitOfWork.ExecuteAsync.");
+
+        var affected = await _context.Books.Where(book => book.Id == id && book.IsAvailable == expected)
+            .ExecuteUpdateAsync(update => update.SetProperty(book => book.IsAvailable, available), cancellationToken);
+        if (affected != 1) return false;
+
+        // ExecuteUpdate bypasses tracking. Synchronize availability without scheduling
+        // another UPDATE at SaveChanges. Unit-of-work rollback clears the tracker.
+        var tracked = _context.Books.Local.FirstOrDefault(book => book.Id == id);
+        if (tracked is not null)
+        {
+            var property = _context.Entry(tracked).Property(book => book.IsAvailable);
+            property.CurrentValue = available;
+            property.OriginalValue = available;
+            property.IsModified = false;
+        }
+        return true;
     }
 
     private static IQueryable<Book> ApplyFilters(IQueryable<Book> books, BookFilter filter)

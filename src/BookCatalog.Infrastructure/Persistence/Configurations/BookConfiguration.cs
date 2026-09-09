@@ -14,6 +14,7 @@ internal sealed class BookConfiguration : IEntityTypeConfiguration<Book>
                 "\"PublicationYear\" >= 1450"));
 
         builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.IsAvailable).IsRequired().HasDefaultValue(true);
 
         builder.Property(entity => entity.Id)
             .ValueGeneratedNever();

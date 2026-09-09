@@ -7,4 +7,5 @@ public sealed record BookDto(
     string Isbn,
     int PublicationYear,
     string? Description,
-    Guid AuthorId);
+    Guid AuthorId,
+    bool IsAvailable);

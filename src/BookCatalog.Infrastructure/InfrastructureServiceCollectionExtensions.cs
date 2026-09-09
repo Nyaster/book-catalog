@@ -1,3 +1,5 @@
+using BookCatalog.Application.Common.Persistence;
+using BookCatalog.Application.Loans.Persistence;
 using BookCatalog.Application.Users.Persistence;
 using BookCatalog.Application.Authors.Persistence;
 using BookCatalog.Application.Books.Persistence;
@@ -36,6 +38,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IBookRepository, EfCoreBookRepository>();
         services.AddScoped<IAuthorRepository, EfCoreAuthorRepository>();
         services.AddScoped<IUserRepository, EfCoreUserRepository>();
+        services.AddScoped<ILoanRepository, EfCoreLoanRepository>();
+        services.AddScoped<IUnitOfWork, EfCoreUnitOfWork>();
 
         return services;
     }

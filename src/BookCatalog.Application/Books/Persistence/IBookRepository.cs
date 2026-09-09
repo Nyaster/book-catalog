@@ -5,6 +5,10 @@ namespace BookCatalog.Application.Books.Persistence;
 
 public interface IBookRepository
 {
+    // Lending writes require an active unit of work.
+    Task<bool> TryBorrowAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<bool> TryReleaseAsync(Guid id, CancellationToken cancellationToken = default);
+
     Task AddAsync(
         Book book,
         CancellationToken cancellationToken = default);
