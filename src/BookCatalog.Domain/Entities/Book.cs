@@ -7,13 +7,14 @@ public sealed class Book
 {
     public Guid Id { get; private set; }
     public string Title { get; private set; }
+    public bool IsAvailable { get; private set; } = true;
     public Guid AuthorId { get; private set; }
     public Author Author { get; private set; } = null!;
     public string Isbn { get; private set; }
     public int PublicationYear { get; private set; }
     public string? Description { get; private set; }
 
-    // EF cannot bind a navigation property through the public creation path.
+
     private Book()
     {
         Title = null!;
@@ -78,6 +79,18 @@ public sealed class Book
         Isbn = normalizedIsbn;
         PublicationYear = validPublicationYear;
         Description = normalizedDescription;
+    }
+
+    public void MarkBorrowed()
+    {
+        if (!IsAvailable) throw new DomainConflictException("This book is already borrowed.");
+        IsAvailable = false;
+    }
+
+    public void MarkReturned()
+    {
+        if (IsAvailable) throw new DomainConflictException("This book is already available.");
+        IsAvailable = true;
     }
 
     private static string NormalizeRequired(string? value, string fieldName, int maxLength)

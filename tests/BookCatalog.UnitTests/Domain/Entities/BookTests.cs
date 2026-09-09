@@ -217,6 +217,59 @@ public sealed class BookTests
         Assert.Equal(originalDescription, book.Description);
     }
 
+    [Fact]
+    public void NewBook_IsAvailable()
+    {
+        Assert.True(CreateValidBook().IsAvailable);
+    }
+
+    [Fact]
+    public void MarkBorrowed_MakesBookUnavailable()
+    {
+        var book = CreateValidBook();
+        book.MarkBorrowed();
+        Assert.False(book.IsAvailable);
+        Assert.Throws<DomainValidationException>(() => book.UpdateDetails(null, book.Author, book.Isbn, 2020, null));
+        Assert.False(book.IsAvailable);
+    }
+
+    [Fact]
+    public void MarkBorrowed_Twice_ThrowsConflict()
+    {
+        var book = CreateValidBook();
+        book.MarkBorrowed();
+        Assert.Throws<DomainConflictException>(() => book.MarkBorrowed());
+        Assert.False(book.IsAvailable);
+    }
+
+    [Fact]
+    public void MarkReturned_AllowsAnotherBorrow()
+    {
+        var book = CreateValidBook();
+        book.MarkBorrowed();
+        book.MarkReturned();
+        Assert.True(book.IsAvailable);
+        book.MarkBorrowed();
+        Assert.False(book.IsAvailable);
+    }
+
+    [Fact]
+    public void MarkReturned_WhenAvailable_ThrowsConflict()
+    {
+        var book = CreateValidBook();
+        Assert.Throws<DomainConflictException>(() => book.MarkReturned());
+        Assert.True(book.IsAvailable);
+    }
+
+    [Fact]
+    public void UpdateDetails_DoesNotChangeBorrowedState()
+    {
+        var book = CreateValidBook();
+        book.MarkBorrowed();
+        book.UpdateDetails("Updated", book.Author, book.Isbn, 2020, null);
+        Assert.False(book.IsAvailable);
+    }
+
     private static Book CreateValidBook()
     {
         return Book.Create(
