@@ -1,0 +1,20 @@
+# Version control
+.git
+
+# IDE settings
+.idea
+.vs
+.vscode
+**/*.user
+**/*.DotSettings.user
+
+# Local build output
+**/bin
+**/obj
+**/TestResults
+
+# Local configuration
+.env
+.env.*
+**/appsettings.Development.json
+**/appsettings.Local.json

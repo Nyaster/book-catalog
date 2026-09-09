@@ -1,0 +1,37 @@
+﻿services:
+  db:
+    image: postgres:17
+    
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bookcatalog}
+      POSTGRES_USER: ${POSTGRES_USER:-bookcatalog}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bookcatalog_dev_only}
+      
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      
+    ports:
+      - "127.0.0.1:${API_PORT:-8080}:8080"
+    
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Database__ConnectionString: "Host=db;Port=5432;Database=${POSTGRES_DB:-bookcatalog};Username=${POSTGRES_USER:-bookcatalog};Password=${POSTGRES_PASSWORD:-bookcatalog_dev_only}"
+      Database__ApplyMigrationsOnStartup: "true"
+      
+    depends_on:
+      db:
+        condition: service_healthy
+    
+volumes:
+  postgres_data:
