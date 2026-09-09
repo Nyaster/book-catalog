@@ -3,17 +3,20 @@ using System;
 using BookCatalog.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace BookCatalog.Infrastructure.Persistence.Migrations
+namespace BookCatalog.Infrastructure.Migrations
 {
     [DbContext(typeof(BookCatalogDbContext))]
-    partial class BookCatalogDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260909141342_Add authors")]
+    partial class Addauthors
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
