@@ -11,7 +11,7 @@ namespace BookCatalog.Api;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
@@ -56,10 +56,13 @@ public class Program
         }
 
         app.UseExceptionHandler();
-        app.UseHttpsRedirection();
+        if (!app.Environment.IsDevelopment())
+        {
+            app.UseHttpsRedirection();
+        }
 
         app.MapControllers();
-
-        app.Run();
+        await app.Services.ApplyMigrationsAsync(app.Lifetime.ApplicationStopped);
+        await app.RunAsync();
     }
 }
