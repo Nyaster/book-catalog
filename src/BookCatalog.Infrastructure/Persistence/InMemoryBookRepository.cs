@@ -92,6 +92,28 @@ public sealed class InMemoryBookRepository : IBookRepository
         return books;
     }
 
+    public Task<bool> TryBorrowAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_syncRoot)
+        {
+            if (!_books.TryGetValue(id, out var book) || !book.IsAvailable) return Task.FromResult(false);
+            book.MarkBorrowed();
+            return Task.FromResult(true);
+        }
+    }
+
+    public Task<bool> TryReleaseAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_syncRoot)
+        {
+            if (!_books.TryGetValue(id, out var book) || book.IsAvailable) return Task.FromResult(false);
+            book.MarkReturned();
+            return Task.FromResult(true);
+        }
+    }
+
     public Task<Book?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

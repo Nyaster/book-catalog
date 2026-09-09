@@ -155,6 +155,7 @@ public sealed class BookService(
             book.Isbn,
             book.PublicationYear,
             book.Description,
-            book.AuthorId);
+            book.AuthorId,
+            book.IsAvailable);
     }
 }

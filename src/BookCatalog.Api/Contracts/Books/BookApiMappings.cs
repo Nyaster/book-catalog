@@ -55,7 +55,8 @@ public static class BookApiMappings
             book.Isbn,
             book.PublicationYear,
             book.Description,
-            book.AuthorId);
+            book.AuthorId,
+            book.IsAvailable);
     }
 
     public static PagedBooksResponse ToResponse(this PagedResult<BookDto> books)

@@ -1,3 +1,4 @@
+using BookCatalog.Application.Loans.Exceptions;
 using BookCatalog.Application.Users.Exceptions;
 using BookCatalog.Application.Authors.Exceptions;
 using System.Text.Json;
@@ -22,6 +23,14 @@ public sealed class GlobalExceptionHandler(
             DomainValidationException => CreateProblemDetails(
                 StatusCodes.Status400BadRequest,
                 "Validation failed",
+                exception.Message),
+            DomainConflictException => CreateProblemDetails(
+                StatusCodes.Status409Conflict,
+                "Operation conflicts with current state",
+                exception.Message),
+            LoanNotFoundException => CreateProblemDetails(
+                StatusCodes.Status404NotFound,
+                "Loan not found",
                 exception.Message),
             UserNotFoundException => CreateProblemDetails(
                 StatusCodes.Status404NotFound,

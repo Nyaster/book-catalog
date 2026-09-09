@@ -484,6 +484,32 @@ public sealed class BookServiceTests
         authors.VerifyNoOtherCalls();
     }
 
+    [Fact]
+    public async Task GetByIdAsync_ReportsBorrowedAvailability()
+    {
+        var book = CreateBook("Borrowed book", "Author", ValidIsbn13);
+        book.MarkBorrowed();
+        var repository = CreateRepositoryMock();
+        repository.Setup(r => r.GetByIdAsync(book.Id, It.IsAny<CancellationToken>())).ReturnsAsync(book);
+
+        var dto = await CreateService(repository).GetByIdAsync(book.Id);
+
+        Assert.False(dto.IsAvailable);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WhenHistoryPreventsDeletion_PropagatesConflict()
+    {
+        var id = Guid.NewGuid();
+        var repository = CreateRepositoryMock();
+        var conflict = new DomainConflictException("A book with borrowing history cannot be deleted.");
+        repository.Setup(r => r.DeleteAsync(id, It.IsAny<CancellationToken>())).ThrowsAsync(conflict);
+
+        var error = await Assert.ThrowsAsync<DomainConflictException>(() => CreateService(repository).DeleteAsync(id));
+
+        Assert.Same(conflict, error);
+    }
+
     private static Mock<IBookRepository> CreateRepositoryMock()
     {
         return new Mock<IBookRepository>(MockBehavior.Strict);
