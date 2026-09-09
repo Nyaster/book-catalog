@@ -1,3 +1,6 @@
+using BookCatalog.Application.Authors.Persistence;
+using BookCatalog.Application.Authors.Exceptions;
+using BookCatalog.Domain.Exceptions;
 using BookCatalog.Application.Books.Contracts;
 using BookCatalog.Application.Books.Exceptions;
 using BookCatalog.Application.Books.Persistence;
@@ -10,6 +13,9 @@ namespace BookCatalog.UnitTests.Application.Books.Services;
 
 public sealed class BookServiceTests
 {
+    private static readonly Author Robert = Author.Create("Robert C. Martin");
+    private static readonly Author Martin = Author.Create("Martin Fowler");
+
     private const string ValidIsbn13 = "9780306406157";
 
     [Fact]
@@ -32,7 +38,7 @@ public sealed class BookServiceTests
         var result = await service.CreateAsync(
             new CreateBookCommand(
                 "  Clean Code  ",
-                "  Robert C. Martin  ",
+                Robert.Id,
                 "978-0-306-40615-7",
                 2008,
                 "  A practical book about writing code.  "),
@@ -183,7 +189,8 @@ public sealed class BookServiceTests
 
         Assert.Equal(book.Id, result.Id);
         Assert.Equal(book.Title, result.Title);
-        Assert.Equal(book.Author, result.Author);
+        Assert.Equal(book.Author.Name, result.Author);
+        Assert.Equal(book.AuthorId, result.AuthorId);
         Assert.Equal(book.Isbn, result.Isbn);
         Assert.Equal(book.PublicationYear, result.PublicationYear);
         Assert.Equal(book.Description, result.Description);
@@ -211,7 +218,7 @@ public sealed class BookServiceTests
         var existingBook = CreateBook("Original title", "Original author", ValidIsbn13);
         var command = new UpdateBookCommand(
             "  Refactoring  ",
-            "  Martin Fowler  ",
+            Martin.Id,
             "0-8044-2957-x",
             1999,
             "  Improving the design of existing code.  ");
@@ -296,7 +303,7 @@ public sealed class BookServiceTests
 
         Assert.Equal("080442957X", exception.Isbn);
         Assert.Equal("Original title", existingBook.Title);
-        Assert.Equal("Original author", existingBook.Author);
+        Assert.Equal("Original author", existingBook.Author.Name);
         Assert.Equal(ValidIsbn13, existingBook.Isbn);
         repository.Verify(
             repository => repository.UpdateAsync(It.IsAny<Book>(), It.IsAny<CancellationToken>()),
@@ -416,21 +423,88 @@ public sealed class BookServiceTests
         repository.VerifyNoOtherCalls();
     }
 
+    [Fact]
+    public async Task CreateAsync_WhenAuthorDoesNotExist_DoesNotWriteBook()
+    {
+        var books = CreateRepositoryMock();
+        var authors = new Mock<IAuthorRepository>(MockBehavior.Strict);
+        authors.Setup(a => a.GetByIdAsync(Robert.Id, It.IsAny<CancellationToken>())).ReturnsAsync((Author?)null);
+        var service = CreateService(books, authors);
+
+        var error = await Assert.ThrowsAsync<AuthorNotFoundException>(() => service.CreateAsync(CreateCommand()));
+
+        Assert.Equal(Robert.Id, error.AuthorId);
+        books.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenAuthorIdIsEmpty_DoesNotAccessRepositories()
+    {
+        var books = CreateRepositoryMock();
+        var authors = new Mock<IAuthorRepository>(MockBehavior.Strict);
+        var service = CreateService(books, authors);
+
+        await Assert.ThrowsAsync<DomainValidationException>(() =>
+            service.CreateAsync(CreateCommand() with { AuthorId = Guid.Empty }));
+
+        books.VerifyNoOtherCalls();
+        authors.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenAuthorDoesNotExist_PreservesOriginalBook()
+    {
+        var book = CreateBook("Original title", "Original author", ValidIsbn13);
+        var originalAuthor = book.Author;
+        var books = CreateRepositoryMock();
+        books.Setup(b => b.GetByIdAsync(book.Id, It.IsAny<CancellationToken>())).ReturnsAsync(book);
+        var authors = new Mock<IAuthorRepository>(MockBehavior.Strict);
+        authors.Setup(a => a.GetByIdAsync(Martin.Id, It.IsAny<CancellationToken>())).ReturnsAsync((Author?)null);
+        var service = CreateService(books, authors);
+
+        await Assert.ThrowsAsync<AuthorNotFoundException>(() => service.UpdateAsync(book.Id, CreateUpdateCommand()));
+
+        Assert.Equal("Original title", book.Title);
+        Assert.Same(originalAuthor, book.Author);
+        books.Verify(b => b.UpdateAsync(It.IsAny<Book>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenCancelled_DoesNotResolveAuthor()
+    {
+        var books = CreateRepositoryMock();
+        var authors = new Mock<IAuthorRepository>(MockBehavior.Strict);
+        var service = CreateService(books, authors);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => service.CreateAsync(CreateCommand(), cancellation.Token));
+
+        books.VerifyNoOtherCalls();
+        authors.VerifyNoOtherCalls();
+    }
+
     private static Mock<IBookRepository> CreateRepositoryMock()
     {
         return new Mock<IBookRepository>(MockBehavior.Strict);
     }
 
-    private static BookService CreateService(Mock<IBookRepository> repository)
+    private static BookService CreateService(Mock<IBookRepository> repository, Mock<IAuthorRepository>? authors = null)
     {
-        return new BookService(repository.Object, new Mock<ILogger<BookService>>().Object);
+        if (authors is null)
+        {
+            authors = new Mock<IAuthorRepository>(MockBehavior.Strict);
+            authors.Setup(a => a.GetByIdAsync(Robert.Id, It.IsAny<CancellationToken>())).ReturnsAsync(Robert);
+            authors.Setup(a => a.GetByIdAsync(Martin.Id, It.IsAny<CancellationToken>())).ReturnsAsync(Martin);
+        }
+        return new BookService(repository.Object, authors.Object, new Mock<ILogger<BookService>>().Object);
     }
 
     private static CreateBookCommand CreateCommand()
     {
         return new CreateBookCommand(
             "Clean Code",
-            "Robert C. Martin",
+            Robert.Id,
             ValidIsbn13,
             2008,
             "A practical book about writing code.");
@@ -440,7 +514,7 @@ public sealed class BookServiceTests
     {
         return new UpdateBookCommand(
             "Refactoring",
-            "Martin Fowler",
+            Martin.Id,
             "0-8044-2957-x",
             1999,
             "Improving the design of existing code.");
@@ -448,6 +522,6 @@ public sealed class BookServiceTests
 
     private static Book CreateBook(string title, string author, string isbn)
     {
-        return Book.Create(title, author, isbn, 2000, "Description");
+        return Book.Create(title, Author.Create(author), isbn, 2000, "Description");
     }
 }

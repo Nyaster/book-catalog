@@ -1,15 +1,24 @@
+using BookCatalog.Application.Authors.Exceptions;
+using BookCatalog.Application.Authors.Persistence;
 using BookCatalog.Application.Books.Contracts;
 using BookCatalog.Application.Books.Exceptions;
 using BookCatalog.Application.Books.Persistence;
 using BookCatalog.Domain.Entities;
+using BookCatalog.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
 
 namespace BookCatalog.Application.Books.Services;
 
-public sealed class BookService(IBookRepository bookRepository, ILogger<BookService> logger) : IBookService
+public sealed class BookService(
+    IBookRepository bookRepository,
+    IAuthorRepository authorRepository,
+    ILogger<BookService> logger) : IBookService
 {
     private readonly IBookRepository _bookRepository =
         bookRepository ?? throw new ArgumentNullException(nameof(bookRepository));
+
+    private readonly IAuthorRepository _authorRepository =
+        authorRepository ?? throw new ArgumentNullException(nameof(authorRepository));
 
     private readonly ILogger<BookService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
@@ -20,9 +29,10 @@ public sealed class BookService(IBookRepository bookRepository, ILogger<BookServ
         ArgumentNullException.ThrowIfNull(command);
         cancellationToken.ThrowIfCancellationRequested();
 
+        var author = await GetRequiredAuthorAsync(command.AuthorId, cancellationToken);
         var book = Book.Create(
             command.Title,
-            command.Author,
+            author,
             command.Isbn,
             command.PublicationYear,
             command.Description);
@@ -74,9 +84,10 @@ public sealed class BookService(IBookRepository bookRepository, ILogger<BookServ
 
         var existingBook = await GetRequiredBookAsync(id, cancellationToken);
 
+        var author = await GetRequiredAuthorAsync(command.AuthorId, cancellationToken);
         var replacement = Book.Create(
             command.Title,
-            command.Author,
+            author,
             command.Isbn,
             command.PublicationYear,
             command.Description);
@@ -91,7 +102,7 @@ public sealed class BookService(IBookRepository bookRepository, ILogger<BookServ
 
         existingBook.UpdateDetails(
             command.Title,
-            command.Author,
+            author,
             command.Isbn,
             command.PublicationYear,
             command.Description);
@@ -128,14 +139,22 @@ public sealed class BookService(IBookRepository bookRepository, ILogger<BookServ
         return book ?? throw new BookNotFoundException(id);
     }
 
+    private async Task<Author> GetRequiredAuthorAsync(Guid id, CancellationToken cancellationToken)
+    {
+        EntityValidation.RequireId(id, "Author ID");
+        return await _authorRepository.GetByIdAsync(id, cancellationToken)
+            ?? throw new AuthorNotFoundException(id);
+    }
+
     private static BookDto MapToDto(Book book)
     {
         return new BookDto(
             book.Id,
             book.Title,
-            book.Author,
+            book.Author.Name,
             book.Isbn,
             book.PublicationYear,
-            book.Description);
+            book.Description,
+            book.AuthorId);
     }
 }

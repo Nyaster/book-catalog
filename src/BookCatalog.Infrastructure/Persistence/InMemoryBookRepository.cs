@@ -33,7 +33,7 @@ public sealed class InMemoryBookRepository : IBookRepository
         {
             var filteredBooks = ApplyFilters(_books.Values, pageRequest.Filter)
                 .OrderBy(book => book.Title, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(book => book.Author, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(book => book.Author.Name, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(book => book.Id)
                 .ToArray();
 
@@ -65,7 +65,7 @@ public sealed class InMemoryBookRepository : IBookRepository
         if (filter.Author is { } author)
         {
             books = books.Where(book =>
-                book.Author.Contains(author, StringComparison.OrdinalIgnoreCase));
+                book.Author.Name.Contains(author, StringComparison.OrdinalIgnoreCase));
         }
 
         if (filter.Isbn is { } isbn)

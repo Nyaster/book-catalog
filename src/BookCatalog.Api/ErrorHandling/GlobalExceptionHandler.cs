@@ -1,3 +1,4 @@
+using BookCatalog.Application.Authors.Exceptions;
 using System.Text.Json;
 using BookCatalog.Application.Books.Exceptions;
 using BookCatalog.Domain.Exceptions;
@@ -19,7 +20,11 @@ public sealed class GlobalExceptionHandler(
         {
             DomainValidationException => CreateProblemDetails(
                 StatusCodes.Status400BadRequest,
-                "Book validation failed",
+                "Validation failed",
+                exception.Message),
+            AuthorNotFoundException => CreateProblemDetails(
+                StatusCodes.Status404NotFound,
+                "Author not found",
                 exception.Message),
             BookNotFoundException => CreateProblemDetails(
                 StatusCodes.Status404NotFound,

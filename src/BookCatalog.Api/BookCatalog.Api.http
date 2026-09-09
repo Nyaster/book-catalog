@@ -1,9 +1,25 @@
 @host = http://localhost:5113
 
-# Run the API with the HTTP launch profile before sending these requests.
-# Run "Create a book" first. Its response stores the generated ID in {{bookId}}
-# for the get, update, and delete examples.
-# Restart the API to reset the in-memory catalog before repeating the full flow.
+# Set Database__ConnectionString and apply migrations before running the HTTP launch profile.
+# Data persists after restart. Run requests in order; deleting the example book lets you repeat them.
+
+### Create an author first
+POST {{host}}/api/authors
+Content-Type: application/json
+
+{
+  "name": "Robert C. Martin"
+}
+
+> {%
+    client.global.set("authorId", response.body.id);
+%}
+
+### List authors to select an existing ID
+GET {{host}}/api/authors?page=1&pageSize=20
+
+### Get the author
+GET {{host}}/api/authors/{{authorId}}
 
 ### Create a book
 # @name createBook
@@ -13,7 +29,7 @@ Content-Type: application/json
 
 {
   "title": "Clean Code",
-  "author": "Robert C. Martin",
+  "authorId": "{{authorId}}",
   "isbn": "978-0-13-235088-4",
   "publicationYear": 2008,
   "description": "A handbook of agile software craftsmanship."
@@ -30,7 +46,7 @@ Content-Type: application/json
 
 {
   "title": "Another Clean Code",
-  "author": "Example Author",
+  "authorId": "{{authorId}}",
   "isbn": "9780132350884",
   "publicationYear": 2020,
   "description": null
@@ -59,7 +75,7 @@ Content-Type: application/json
 
 {
   "title": "Clean Code — Updated",
-  "author": "Robert C. Martin",
+  "authorId": "{{authorId}}",
   "isbn": "9780132350884",
   "publicationYear": 2008,
   "description": "Updated catalog description."
@@ -86,7 +102,7 @@ Content-Type: application/json
 
 {
   "title": "Invalid ISBN Example",
-  "author": "Example Author",
+  "authorId": "{{authorId}}",
   "isbn": "not-an-isbn",
   "publicationYear": 2020,
   "description": null
@@ -99,7 +115,7 @@ Content-Type: application/json
 
 {
   "title": "Future Book",
-  "author": "Example Author",
+  "authorId": "{{authorId}}",
   "isbn": "9780201616224",
   "publicationYear": 2099,
   "description": null

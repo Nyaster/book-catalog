@@ -8,9 +8,8 @@ public sealed class CreateBookRequest
     [StringLength(200, ErrorMessage = "Title cannot be longer than 200 characters.")]
     public string? Title { get; init; }
 
-    [Required(ErrorMessage = "Author is required.")]
-    [StringLength(150, ErrorMessage = "Author cannot be longer than 150 characters.")]
-    public string? Author { get; init; }
+    [Required(ErrorMessage = "Author ID is required.")]
+    public Guid? AuthorId { get; init; }
 
     [Required(ErrorMessage = "ISBN is required.")]
     public string? Isbn { get; init; }

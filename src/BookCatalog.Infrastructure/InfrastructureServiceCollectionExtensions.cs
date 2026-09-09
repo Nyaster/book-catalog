@@ -1,3 +1,4 @@
+using BookCatalog.Application.Authors.Persistence;
 using BookCatalog.Application.Books.Persistence;
 using BookCatalog.Infrastructure.Configuration;
 using BookCatalog.Infrastructure.Persistence;
@@ -32,6 +33,7 @@ public static class InfrastructureServiceCollectionExtensions
             optionsBuilder.UseNpgsql(databaseOptions.ConnectionString);
         });
         services.AddScoped<IBookRepository, EfCoreBookRepository>();
+        services.AddScoped<IAuthorRepository, EfCoreAuthorRepository>();
 
         return services;
     }

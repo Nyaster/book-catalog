@@ -20,9 +20,11 @@ internal sealed class BookConfiguration : IEntityTypeConfiguration<Book>
         builder.Property(entity => entity.Title)
             .IsRequired()
             .HasMaxLength(200);
-        builder.Property(entity => entity.Author)
+        builder.HasOne(entity => entity.Author)
+            .WithMany()
+            .HasForeignKey(entity => entity.AuthorId)
             .IsRequired()
-            .HasMaxLength(150);
+            .OnDelete(DeleteBehavior.Restrict);
         builder.Property(entity => entity.Isbn)
             .IsRequired()
             .HasMaxLength(13);
@@ -33,6 +35,6 @@ internal sealed class BookConfiguration : IEntityTypeConfiguration<Book>
 
         builder.HasIndex(entity => entity.Isbn)
             .IsUnique();
-        builder.HasIndex(entity => new { entity.Title, entity.Author, entity.Id });
+        builder.HasIndex(entity => new { entity.Title, entity.Id });
     }
 }

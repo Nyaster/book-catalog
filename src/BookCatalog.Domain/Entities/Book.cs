@@ -5,17 +5,25 @@ namespace BookCatalog.Domain.Entities;
 
 public sealed class Book
 {
-    public Guid Id { get; }
+    public Guid Id { get; private set; }
     public string Title { get; private set; }
-    public string Author { get; private set; }
+    public Guid AuthorId { get; private set; }
+    public Author Author { get; private set; } = null!;
     public string Isbn { get; private set; }
     public int PublicationYear { get; private set; }
     public string? Description { get; private set; }
 
+    // EF cannot bind a navigation property through the public creation path.
+    private Book()
+    {
+        Title = null!;
+        Isbn = null!;
+    }
+
     private Book(
         Guid id,
         string title,
-        string author,
+        Author author,
         string isbn,
         int publicationYear,
         string? description)
@@ -23,6 +31,7 @@ public sealed class Book
         Id = id;
         Title = title;
         Author = author;
+        AuthorId = author.Id;
         Isbn = isbn;
         PublicationYear = publicationYear;
         Description = description;
@@ -30,13 +39,13 @@ public sealed class Book
 
     public static Book Create(
         string? title,
-        string? author,
+        Author? author,
         string? isbn,
         int? publicationYear,
         string? description)
     {
         var normalizedTitle = NormalizeRequired(title, "Title", 200);
-        var normalizedAuthor = NormalizeRequired(author, "Author", 150);
+        var validAuthor = author ?? throw new DomainValidationException("Author is required.");
         var normalizedIsbn = NormalizeIsbn(isbn);
         var validPublicationYear = ValidatePublicationYear(publicationYear);
         var normalizedDescription = NormalizeDescription(description);
@@ -44,7 +53,7 @@ public sealed class Book
         return new Book(
             Guid.NewGuid(),
             normalizedTitle,
-            normalizedAuthor,
+            validAuthor,
             normalizedIsbn,
             validPublicationYear,
             normalizedDescription);
@@ -52,19 +61,20 @@ public sealed class Book
 
     public void UpdateDetails(
         string? title,
-        string? author,
+        Author? author,
         string? isbn,
         int? publicationYear,
         string? description)
     {
         var normalizedTitle = NormalizeRequired(title, "Title", 200);
-        var normalizedAuthor = NormalizeRequired(author, "Author", 150);
+        var validAuthor = author ?? throw new DomainValidationException("Author is required.");
         var normalizedIsbn = NormalizeIsbn(isbn);
         var validPublicationYear = ValidatePublicationYear(publicationYear);
         var normalizedDescription = NormalizeDescription(description);
 
         Title = normalizedTitle;
-        Author = normalizedAuthor;
+        Author = validAuthor;
+        AuthorId = validAuthor.Id;
         Isbn = normalizedIsbn;
         PublicationYear = validPublicationYear;
         Description = normalizedDescription;
