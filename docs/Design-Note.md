@@ -66,3 +66,37 @@ So it's why i write unit test for business logic, and trying to cover all intend
 
 # What was painful to change from week 1, and what that tells you about your original design
 Due to how i start write application from begginning there near zero changes in layers and arhictecture, only few changes in contracts to add pagination and filtering features.
+
+
+> Week three decithions.
+
+# Your data model and why it is shaped this way
+
+Entity | Why it is shaped this way
+--- | ---
+Book | Represent borrowable book, and it's catalog details.
+Author | Represents Author, Author can write multiple books. It's helping Books refereence same person.
+User | Represents user, which can borrow book.
+Loan | Records one borrowing event: which book, which user, when borrowed and when returned.
+
+To able story borrowing history, loan is separate entity.
+In future if book can be in more than one copy, we can simply extend this via this many to many relationship.
+In example add new column `Copies` to `Book` entity which represent how many copies of book are available.
+Or we make another entity `BookCopy` which represent one copy of book, so we can have borrowing story for each copy.(If this system represents real library).
+
+# Which database you chose and why
+I choose PostgreSQL. It's modern, fast, and very good document database. I have experience with it, and it's why i choose it.
+
+# How much of your code had to change when you replaced in-memory storage, and what that says about week 2
+Not so much, most of changes due to changes in contracts and introducting new entities and it's relationships.
+
+# Where you expect performance to become a problem first
+Mostly of the filtering and pagination. I use simple offset pagination, which in big amount of data is not good performance-wise.
+If we need to support large amount of data, i would use token based pagination, which is more efficient but need a little more effort to implement.
+
+# What each meaningful line of your Dockerfile does
+- FROM -- Base image
+- COPY -- Copy files from local machine to docker image
+- RUN -- Run command in docker image
+- EXPOSE -- Expose port to outside world
+- ENTRYPOINT -- Entrypoint of docker image
