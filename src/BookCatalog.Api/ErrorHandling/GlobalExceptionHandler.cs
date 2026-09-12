@@ -2,8 +2,10 @@ using BookCatalog.Application.Loans.Exceptions;
 using BookCatalog.Application.Users.Exceptions;
 using BookCatalog.Application.Authors.Exceptions;
 using System.Text.Json;
+using System.Diagnostics;
 using BookCatalog.Application.Books.Exceptions;
 using BookCatalog.Domain.Exceptions;
+using BookCatalog.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,6 +22,10 @@ public sealed class GlobalExceptionHandler(
     {
         var problemDetails = exception switch
         {
+            _ when DatabaseFailures.IsTransient(exception) => CreateProblemDetails(
+                StatusCodes.Status503ServiceUnavailable,
+                "Service temporarily unavailable",
+                "The database is temporarily unavailable."),
             DomainValidationException => CreateProblemDetails(
                 StatusCodes.Status400BadRequest,
                 "Validation failed",
@@ -56,7 +62,14 @@ public sealed class GlobalExceptionHandler(
 
         var statusCode = problemDetails.Status!.Value;
 
-        if (statusCode >= StatusCodes.Status500InternalServerError)
+        if (statusCode == StatusCodes.Status503ServiceUnavailable)
+        {
+            logger.LogError(
+                "Database unavailable. StatusCode: {StatusCode}; Method: {RequestMethod}; Path: {RequestPath}; TraceId: {TraceId}",
+                statusCode, httpContext.Request.Method, httpContext.Request.Path,
+                Activity.Current?.TraceId.ToString() ?? httpContext.TraceIdentifier);
+        }
+        else if (statusCode >= StatusCodes.Status500InternalServerError)
         {
             logger.LogError(
                 exception,

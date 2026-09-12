@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BookCatalog.Infrastructure.Persistence;
 
-public sealed class EfCoreAuthorRepository(BookCatalogDbContext context) : IAuthorRepository
+public sealed class EfCoreAuthorRepository(BookCatalogDbContext context, DatabaseReadRetry readRetry) : IAuthorRepository
 {
     private readonly BookCatalogDbContext _context = context ?? throw new ArgumentNullException(nameof(context));
 
@@ -18,9 +18,13 @@ public sealed class EfCoreAuthorRepository(BookCatalogDbContext context) : IAuth
         await _context.SaveChangesAsync(cancellationToken);
     }
     public Task<Author?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
-        _context.Authors.SingleOrDefaultAsync(author => author.Id == id, cancellationToken);
+        readRetry.ExecuteAsync("Authors.GetById", token => _context.Authors
+            .SingleOrDefaultAsync(author => author.Id == id, token), cancellationToken);
 
-    public async Task<PagedResult<Author>> GetPageAsync(PageQuery query, CancellationToken cancellationToken = default)
+    public Task<PagedResult<Author>> GetPageAsync(PageQuery query, CancellationToken cancellationToken = default) =>
+        readRetry.ExecuteAsync("Authors.GetPage", token => ReadPageAsync(query, token), cancellationToken);
+
+    private async Task<PagedResult<Author>> ReadPageAsync(PageQuery query, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(query);
         var authors = _context.Authors.AsNoTracking();

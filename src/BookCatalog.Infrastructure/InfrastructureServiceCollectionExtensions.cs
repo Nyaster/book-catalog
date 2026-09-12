@@ -35,6 +35,7 @@ public static class InfrastructureServiceCollectionExtensions
 
             optionsBuilder.UseNpgsql(databaseOptions.ConnectionString);
         });
+        services.AddScoped<DatabaseReadRetry>();
         services.AddScoped<IBookRepository, EfCoreBookRepository>();
         services.AddScoped<IAuthorRepository, EfCoreAuthorRepository>();
         services.AddScoped<IUserRepository, EfCoreUserRepository>();
