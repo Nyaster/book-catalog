@@ -43,6 +43,18 @@ public sealed class PostgresFixture : IAsyncLifetime
 
     public Task CreateDatabaseAsync(string database) => ExecuteAsync($"CREATE DATABASE {QuoteDatabase(database)}");
 
+    public async Task PauseAsync()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        await _container!.PauseAsync(timeout.Token);
+    }
+
+    public async Task ResumeAsync()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        await _container!.UnpauseAsync(timeout.Token);
+    }
+
     public Task DropDatabaseAsync(string database) =>
         ExecuteAsync($"DROP DATABASE IF EXISTS {QuoteDatabase(database)} WITH (FORCE)");
 

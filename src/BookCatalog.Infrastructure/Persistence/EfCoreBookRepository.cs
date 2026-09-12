@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BookCatalog.Infrastructure.Persistence;
 
-public sealed class EfCoreBookRepository(BookCatalogDbContext context) : IBookRepository
+public sealed class EfCoreBookRepository(BookCatalogDbContext context, DatabaseReadRetry readRetry) : IBookRepository
 {
     private readonly BookCatalogDbContext _context =
         context ?? throw new ArgumentNullException(nameof(context));
@@ -27,7 +27,10 @@ public sealed class EfCoreBookRepository(BookCatalogDbContext context) : IBookRe
         }
     }
 
-    public async Task<PagedResult<Book>> GetPageAsync(
+    public Task<PagedResult<Book>> GetPageAsync(BookListQuery pageRequest, CancellationToken cancellationToken = default) =>
+        readRetry.ExecuteAsync("Books.GetPage", token => ReadPageAsync(pageRequest, token), cancellationToken);
+
+    private async Task<PagedResult<Book>> ReadPageAsync(
         BookListQuery pageRequest,
         CancellationToken cancellationToken = default)
     {
@@ -59,8 +62,8 @@ public sealed class EfCoreBookRepository(BookCatalogDbContext context) : IBookRe
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        return _context.Books.Include(book => book.Author)
-            .SingleOrDefaultAsync(book => book.Id == id, cancellationToken);
+        return readRetry.ExecuteAsync("Books.GetById", token => _context.Books.Include(book => book.Author)
+            .SingleOrDefaultAsync(book => book.Id == id, token), cancellationToken);
     }
 
     public async Task UpdateAsync(Book book, CancellationToken cancellationToken = default)
@@ -132,11 +135,11 @@ public sealed class EfCoreBookRepository(BookCatalogDbContext context) : IBookRe
 
         var normalizedIsbn = isbn.ToUpperInvariant();
 
-        return _context.Books
+        return readRetry.ExecuteAsync("Books.IsIsbnInUse", token => _context.Books
             .AsNoTracking()
             .AnyAsync(
                 book => book.Id != excludedBookId && book.Isbn == normalizedIsbn,
-                cancellationToken);
+                token), cancellationToken);
     }
 
     public Task<bool> TryBorrowAsync(Guid id, CancellationToken cancellationToken = default) =>

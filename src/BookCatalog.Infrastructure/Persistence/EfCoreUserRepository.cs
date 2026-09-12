@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BookCatalog.Infrastructure.Persistence;
 
-public sealed class EfCoreUserRepository(BookCatalogDbContext context) : IUserRepository
+public sealed class EfCoreUserRepository(BookCatalogDbContext context, DatabaseReadRetry readRetry) : IUserRepository
 {
     private readonly BookCatalogDbContext _context = context ?? throw new ArgumentNullException(nameof(context));
 
@@ -18,9 +18,13 @@ public sealed class EfCoreUserRepository(BookCatalogDbContext context) : IUserRe
         await _context.SaveChangesAsync(cancellationToken);
     }
     public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
-        _context.Users.SingleOrDefaultAsync(user => user.Id == id, cancellationToken);
+        readRetry.ExecuteAsync("Users.GetById", token => _context.Users
+            .SingleOrDefaultAsync(user => user.Id == id, token), cancellationToken);
 
-    public async Task<PagedResult<User>> GetPageAsync(PageQuery query, CancellationToken cancellationToken = default)
+    public Task<PagedResult<User>> GetPageAsync(PageQuery query, CancellationToken cancellationToken = default) =>
+        readRetry.ExecuteAsync("Users.GetPage", token => ReadPageAsync(query, token), cancellationToken);
+
+    private async Task<PagedResult<User>> ReadPageAsync(PageQuery query, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(query);
         var users = _context.Users.AsNoTracking();

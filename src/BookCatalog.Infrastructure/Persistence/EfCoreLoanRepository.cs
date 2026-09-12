@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BookCatalog.Infrastructure.Persistence;
 
-public sealed class EfCoreLoanRepository(BookCatalogDbContext context) : ILoanRepository
+public sealed class EfCoreLoanRepository(BookCatalogDbContext context, DatabaseReadRetry readRetry) : ILoanRepository
 {
     private readonly BookCatalogDbContext _context = context ?? throw new ArgumentNullException(nameof(context));
 
@@ -31,13 +31,16 @@ public sealed class EfCoreLoanRepository(BookCatalogDbContext context) : ILoanRe
     }
 
     public Task<Loan?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
-        ReadLoans().SingleOrDefaultAsync(loan => loan.Id == id, cancellationToken);
+        readRetry.ExecuteAsync("Loans.GetById", token => ReadLoans()
+            .SingleOrDefaultAsync(loan => loan.Id == id, token), cancellationToken);
 
     public Task<PagedResult<Loan>> GetByBookAsync(Guid bookId, PageQuery query, CancellationToken cancellationToken = default) =>
-        GetPageAsync(ReadLoans().Where(loan => loan.BookId == bookId), query, cancellationToken);
+        readRetry.ExecuteAsync("Loans.GetByBook", token =>
+            GetPageAsync(ReadLoans().Where(loan => loan.BookId == bookId), query, token), cancellationToken);
 
     public Task<PagedResult<Loan>> GetByUserAsync(Guid userId, PageQuery query, CancellationToken cancellationToken = default) =>
-        GetPageAsync(ReadLoans().Where(loan => loan.UserId == userId), query, cancellationToken);
+        readRetry.ExecuteAsync("Loans.GetByUser", token =>
+            GetPageAsync(ReadLoans().Where(loan => loan.UserId == userId), query, token), cancellationToken);
 
     private IQueryable<Loan> ReadLoans() =>
         _context.Loans.AsNoTracking().Include(loan => loan.Book).Include(loan => loan.User);
