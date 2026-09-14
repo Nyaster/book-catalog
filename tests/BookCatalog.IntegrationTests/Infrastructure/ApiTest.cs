@@ -8,6 +8,7 @@ using BookCatalog.Api.Contracts.Users;
 using BookCatalog.Application.Books.Contracts;
 using Npgsql;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BookCatalog.IntegrationTests.Infrastructure;
 
@@ -21,6 +22,12 @@ public abstract class ApiTest(PostgresFixture postgres) : IClassFixture<Postgres
     protected HttpClient Client => _client ?? throw new InvalidOperationException("The test API has not started.");
     protected IServiceProvider Services => _application!.Services;
     protected virtual bool CaptureLogs => false;
+    protected virtual string EnvironmentName => "Development";
+    protected string ConnectionString => _connectionString!;
+
+    protected virtual void ConfigureServices(IServiceCollection services)
+    {
+    }
 
     protected virtual void ConfigureDatabase(DbContextOptionsBuilder options)
     {
@@ -33,7 +40,8 @@ public abstract class ApiTest(PostgresFixture postgres) : IClassFixture<Postgres
             _connectionString = postgres.ConnectionStringFor(_database);
             _databaseCreationAttempted = true;
             await postgres.CreateDatabaseAsync(_database);
-            _application = new CatalogApplication(_connectionString, ConfigureDatabase, CaptureLogs);
+            _application = new CatalogApplication(_connectionString, ConfigureDatabase, CaptureLogs,
+                EnvironmentName, ConfigureServices);
             _application.UseKestrel(0);
             _application.ClientOptions.AllowAutoRedirect = false;
             _client = _application.CreateClient();

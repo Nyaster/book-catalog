@@ -12,12 +12,16 @@ namespace BookCatalog.IntegrationTests.Infrastructure;
 internal sealed class CatalogApplication(
     string connectionString,
     Action<DbContextOptionsBuilder>? configureDatabase = null,
-    bool captureLogs = false)
+    bool captureLogs = false,
+    string environment = "Development",
+    Action<IServiceCollection>? configureServices = null)
     : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Development");
+        builder.UseEnvironment(environment);
+        if (configureServices is not null)
+            builder.ConfigureServices(configureServices);
         if (captureLogs)
             builder.ConfigureServices(services =>
             {
