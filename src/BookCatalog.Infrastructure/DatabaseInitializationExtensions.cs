@@ -1,3 +1,4 @@
+using BookCatalog.Application.Common.Logging;
 using BookCatalog.Infrastructure.Configuration;
 using BookCatalog.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -25,11 +26,11 @@ public static class DatabaseInitializationExtensions
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
             .CreateLogger("DatabaseInitialization");
         
-        logger.LogInformation("Applying database migrations...");
+        logger.LogInformation(LogEvents.MigrationsStarted, "Applying database migrations...");
         
         await context.Database.MigrateAsync(cancellationToken);
 
-        logger.LogInformation(
+        logger.LogInformation(LogEvents.MigrationsCompleted,
             "Database migrations applied successfully."
         );
     }

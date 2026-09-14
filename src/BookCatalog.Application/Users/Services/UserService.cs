@@ -1,3 +1,4 @@
+using BookCatalog.Application.Common.Logging;
 using BookCatalog.Application.Users.Contracts;
 using BookCatalog.Application.Users.Exceptions;
 using BookCatalog.Application.Users.Persistence;
@@ -21,7 +22,7 @@ public sealed class UserService(IUserRepository userRepository, ILogger<UserServ
 
         var user = User.Create(command.DisplayName);
         await _userRepository.AddAsync(user, cancellationToken);
-        _logger.LogInformation("Created user {UserId}.", user.Id);
+        _logger.LogInformation(LogEvents.UserCreated, "Created user {UserId}.", user.Id);
         return MapToDto(user);
     }
 

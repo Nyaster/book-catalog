@@ -1,3 +1,4 @@
+using BookCatalog.Application.Common.Logging;
 using BookCatalog.Application.Authors.Exceptions;
 using BookCatalog.Application.Authors.Persistence;
 using BookCatalog.Application.Books.Contracts;
@@ -44,7 +45,7 @@ public sealed class BookService(
 
         await _bookRepository.AddAsync(book, cancellationToken);
 
-        _logger.LogInformation("Created book {BookId}.", book.Id);
+        _logger.LogInformation(LogEvents.BookCreated, "Created book {BookId}.", book.Id);
 
         return MapToDto(book);
     }
@@ -109,7 +110,7 @@ public sealed class BookService(
 
         await _bookRepository.UpdateAsync(existingBook, cancellationToken);
 
-        _logger.LogInformation("Updated book {BookId}.", existingBook.Id);
+        _logger.LogInformation(LogEvents.BookUpdated, "Updated book {BookId}.", existingBook.Id);
 
         return MapToDto(existingBook);
     }
@@ -127,7 +128,7 @@ public sealed class BookService(
             throw new BookNotFoundException(id);
         }
 
-        _logger.LogInformation("Deleted book {BookId}.", id);
+        _logger.LogInformation(LogEvents.BookDeleted, "Deleted book {BookId}.", id);
     }
 
     private async Task<Book> GetRequiredBookAsync(Guid id, CancellationToken cancellationToken)

@@ -2,7 +2,7 @@ using BookCatalog.Application.Loans.Exceptions;
 using BookCatalog.Application.Users.Exceptions;
 using BookCatalog.Application.Authors.Exceptions;
 using System.Text.Json;
-using System.Diagnostics;
+using BookCatalog.Api.Logging;
 using BookCatalog.Application.Books.Exceptions;
 using BookCatalog.Domain.Exceptions;
 using BookCatalog.Infrastructure.Persistence;
@@ -11,9 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BookCatalog.Api.ErrorHandling;
 
-public sealed class GlobalExceptionHandler(
-    IProblemDetailsService problemDetailsService,
-    ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
+public sealed class GlobalExceptionHandler(IProblemDetailsService problemDetailsService) : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
@@ -62,34 +60,8 @@ public sealed class GlobalExceptionHandler(
 
         var statusCode = problemDetails.Status!.Value;
 
-        if (statusCode == StatusCodes.Status503ServiceUnavailable)
-        {
-            logger.LogError(
-                "Database unavailable. StatusCode: {StatusCode}; Method: {RequestMethod}; Path: {RequestPath}; TraceId: {TraceId}",
-                statusCode, httpContext.Request.Method, httpContext.Request.Path,
-                Activity.Current?.TraceId.ToString() ?? httpContext.TraceIdentifier);
-        }
-        else if (statusCode >= StatusCodes.Status500InternalServerError)
-        {
-            logger.LogError(
-                exception,
-                "Unhandled request exception. StatusCode: {StatusCode}; Method: {RequestMethod}; Path: {RequestPath}; TraceId: {TraceId}",
-                statusCode,
-                httpContext.Request.Method,
-                httpContext.Request.Path,
-                httpContext.TraceIdentifier);
-        }
-        else
-        {
-            logger.LogWarning(
-                "Handled request failure. StatusCode: {StatusCode}; ExceptionType: {ExceptionType}; Method: {RequestMethod}; Path: {RequestPath}; TraceId: {TraceId}; Message: {ErrorMessage}",
-                statusCode,
-                exception.GetType().Name,
-                httpContext.Request.Method,
-                httpContext.Request.Path,
-                httpContext.TraceIdentifier,
-                exception.Message);
-        }
+        httpContext.Features.Get<RequestLogContext>()?.RecordFailure(exception,
+            includeStackTrace: statusCode == StatusCodes.Status500InternalServerError);
 
         httpContext.Response.StatusCode = statusCode;
 
@@ -101,7 +73,7 @@ public sealed class GlobalExceptionHandler(
         });
 
         if (wasWritten) return true;
-        problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
+        problemDetails.Extensions["traceId"] = RequestLogContext.TraceIdFor(httpContext);
 
         await httpContext.Response.WriteAsJsonAsync(
             problemDetails,

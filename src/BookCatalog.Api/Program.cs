@@ -3,6 +3,7 @@ using BookCatalog.Application.Users.Services;
 using BookCatalog.Application.Authors.Services;
 using BookCatalog.Application.Books.Services;
 using BookCatalog.Api.ErrorHandling;
+using BookCatalog.Api.Logging;
 using BookCatalog.Infrastructure;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 using Microsoft.OpenApi;
@@ -11,16 +12,33 @@ namespace BookCatalog.Api;
 
 public class Program
 {
-    public static async Task Main(string[] args)
+    public static async Task<int> Main(string[] args)
+    {
+        try
+        {
+            await RunAsync(args);
+            return 0;
+        }
+        catch (Exception exception) when (exception is not HostAbortedException)
+        {
+            ApplicationFailureLogging.Log(exception);
+            return 1;
+        }
+    }
+
+    private static async Task RunAsync(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+        builder.Logging.ClearProviders();
+        builder.Services.AddCatalogLogging(builder.Configuration);
 
         builder.Services.AddControllers(options =>
         {
             options.ModelMetadataDetailsProviders.Add(new SystemTextJsonValidationMetadataProvider());
         });
         builder.Services.AddValidation();
-        builder.Services.AddProblemDetails();
+        builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
+            context.ProblemDetails.Extensions["traceId"] = RequestLogContext.TraceIdFor(context.HttpContext));
         builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
         builder.Services.AddInfrastructure(builder.Configuration);
         builder.Services.AddOpenApi(options =>
@@ -43,7 +61,11 @@ public class Program
         builder.Services.AddScoped<ILendingService, LendingService>();
         builder.Services.AddSingleton(TimeProvider.System);
 
-        var app = builder.Build();
+        await using var app = builder.Build();
+
+        app.UseRouting();
+        app.UseCatalogRequestLogging();
+        app.UseExceptionHandler();
 
         if (app.Environment.IsDevelopment())
         {
@@ -55,7 +77,6 @@ public class Program
             });
         }
 
-        app.UseExceptionHandler();
         if (!app.Environment.IsDevelopment())
         {
             app.UseHttpsRedirection();
