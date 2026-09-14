@@ -33,6 +33,7 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
         builder.Logging.ClearProviders();
         builder.Services.AddCatalogLogging(builder.Configuration);
+        builder.Services.Configure<HostOptions>(options => options.ShutdownTimeout = TimeSpan.FromSeconds(30));
         builder.Services.AddHealthChecks()
             .AddCheck<ReadinessHealthCheck>("ready", timeout: TimeSpan.FromSeconds(3));
 
