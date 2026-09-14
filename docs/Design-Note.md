@@ -23,7 +23,7 @@ Finally is going to presentation layer, which answer to question like how to pre
 # Decisions
 For storage, i use in memory storage, simple dictionary, using locs for handling concurrency. For current application state this is simpliest and straitghtforward way to store data.
 
-For logging i use build in logger. Simple and straight forward. For future it's been easily replaced with any other logging library without any change in code.
+Application services use Microsoft’s `ILogger<T>` abstraction. Serilog supplies the logging implementation, so service logging calls remain independent of the output provider.
 
 For error handling i use global exception handler, which currentl handle all exceptions.
 
@@ -100,3 +100,74 @@ If we need to support large amount of data, i would use token based pagination, 
 - RUN -- Run command in docker image
 - EXPOSE -- Expose port to outside world
 - ENTRYPOINT -- Entrypoint of docker image
+
+## Week four — operation and verification
+
+### Purpose and architecture
+
+The platform stores books, authors, users, and loans. A user can borrow an available book and return it later. The platform keeps the loan history.
+
+Week one introduced book operations and memory storage. Week two separated responsibilities and added tests. Week three introduced PostgreSQL, related records, and lending operations. Week four added tools to check and operate the service.
+
+The four layers remain in place. The Domain layer contains entities and business rules. The Application layer coordinates business operations. The Infrastructure layer provides database access and transactions. The API layer receives HTTP requests and produces responses.
+
+Health checks and request logs belong to the API layer. Database validation and read retries belong to the Infrastructure layer. This separation keeps operational code out of the entities.
+
+### Integration tests
+
+An integration test checks several parts of the system together. These tests send real HTTP requests to Kestrel, the application web server. They use PostgreSQL through Testcontainers. They do not use a database substitute.
+
+Each test has a separate database and an HTTP server with an assigned port. Tests create their own records. They do not depend on records from another test or a fixed test order.
+
+Test cleanup drops each database. The container fixture checks for remaining test databases before it removes the container. Startup failure also starts cleanup. These controls make repeated test runs possible.
+
+
+### Health checks
+
+Liveness means that the HTTP server can respond. Readiness means that the service can perform the selected database check. These conditions answer different operational questions.
+
+| Endpoint | Check | Result |
+| --- | --- | --- |
+| `/health/live` | No database access | HTTP 200 when the server can respond |
+| `/health/ready` | Read at most one book ID | HTTP 200 on success; HTTP 503 on failure |
+
+An empty catalog passes the readiness check. A missing Books table or an unavailable database fails the check. Responses contain only `Healthy` or `Unhealthy`. They do not contain database error details.
+
+The readiness check has a three-second cancellation deadline. Database cancellation and cleanup can require additional time. The check does not retry. This prevents each health request from adding retry traffic during an outage.
+
+Readiness also checks whether application shutdown has started. It checks this condition before and after the database read. After the server stops accepting connections, a health request can fail to connect.
+
+Health endpoints accept HTTP in Production. Other API endpoints retain HTTPS redirection. Tests check this difference.
+
+A successful readiness check does not prove that all tables exist or that database writes will succeed.
+
+### Structured logs
+
+The service writes one JSON object for each console log entry. Application services use `ILogger<T>`. Serilog.AspNetCore supplies the logging implementation. This keeps application services independent of the console output format.
+
+The response header `X-Trace-Id` contains the trace ID. Error responses use the same value in the ProblemDetails `traceId` field. A valid incoming `traceparent` header continues the caller's trace. Otherwise, the server creates a trace.
+
+Business success logs occur after database changes complete. This prevents a success log from describing a transaction that later fails.
+
+### Configuration validation
+
+Database configuration uses a validated options object. The connection string must specify Host, Database, and Username. Missing or malformed connection strings stop application startup. Validation errors identify the configuration key without printing its value.
+
+Startup failure produces a JSON log entry and exit code 1. This makes the failure visible to the process manager. A test checks the exit code and safe error output for an invalid connection string.
+
+
+### Graceful shutdown
+
+Graceful shutdown gives accepted requests time to finish. The application host allows 30 seconds. Docker Compose allows 40 seconds before forced termination.
+
+### Retries and database outages
+
+A retry repeats a failed operation. The service retries only database reads with temporary PostgreSQL failures. Each read has at most three attempts: the initial attempt and two retries.
+
+The first retry delay is 250 to 350 milliseconds. The second delay is 500 to 600 milliseconds. Random delay reduces simultaneous retry traffic. Database connection and command timeouts add to the total request time.
+
+The service does not retry writes or reads inside a transaction. It also does not retry cancellation or permanent database errors. Cancellation can stop a retry delay.
+
+# Conclution
+
+Week 4 was really hard for me. I had to research and learn many new things. During this time, I became quite exhausted and relied too much on AI this week. If I had had more time, I would have deepened my knowledge of this week’s topics and performed better.
