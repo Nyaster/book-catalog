@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using BookCatalog.Application.Common.Logging;
 using System.Transactions;
 using Microsoft.Extensions.Logging;
 
@@ -28,9 +28,9 @@ public sealed class DatabaseReadRetry(BookCatalogDbContext context, ILogger<Data
                 DatabaseFailures.IsTransient(exception))
             {
                 var delay = TimeSpan.FromMilliseconds(250 * attempt + Random.Shared.Next(101));
-                logger.LogWarning(
-                    "Database read failed temporarily. Operation: {Operation}; Attempt: {Attempt}; DelayMs: {DelayMs}; TraceId: {TraceId}",
-                    operationName, attempt, delay.TotalMilliseconds, Activity.Current?.TraceId.ToString());
+                logger.LogWarning(LogEvents.DatabaseReadRetry,
+                    "Database read failed temporarily. Operation: {Operation}; Attempt: {Attempt}; DelayMs: {DelayMs}",
+                    operationName, attempt, delay.TotalMilliseconds);
                 await Task.Delay(delay, cancellationToken);
             }
         }

@@ -1,3 +1,4 @@
+using BookCatalog.Application.Common.Logging;
 using BookCatalog.Application.Books.Contracts;
 using BookCatalog.Application.Books.Exceptions;
 using BookCatalog.Application.Books.Persistence;
@@ -48,7 +49,7 @@ public sealed class LendingService(
             }
             await _loans.AddAsync(loan, token);
         }, cancellationToken);
-        _logger.LogInformation("User {UserId} borrowed book {BookId}; loan {LoanId}.", userId, bookId, loan.Id);
+        _logger.LogInformation(LogEvents.BookBorrowed, "User {UserId} borrowed book {BookId}; loan {LoanId}.", userId, bookId, loan.Id);
         return MapToDto(loan);
     }
 
@@ -68,7 +69,7 @@ public sealed class LendingService(
             if (!await _books.TryReleaseAsync(loan.BookId, token))
                 throw new InvalidOperationException("The book availability does not match its active loan.");
         }, cancellationToken);
-        _logger.LogInformation("User {UserId} returned book {BookId}; loan {LoanId}.", userId, loan.BookId, loanId);
+        _logger.LogInformation(LogEvents.BookReturned, "User {UserId} returned book {BookId}; loan {LoanId}.", userId, loan.BookId, loanId);
         return MapToDto(loan);
     }
 

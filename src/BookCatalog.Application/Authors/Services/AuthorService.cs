@@ -1,3 +1,4 @@
+using BookCatalog.Application.Common.Logging;
 using BookCatalog.Application.Authors.Contracts;
 using BookCatalog.Application.Authors.Exceptions;
 using BookCatalog.Application.Authors.Persistence;
@@ -21,7 +22,7 @@ public sealed class AuthorService(IAuthorRepository authorRepository, ILogger<Au
 
         var author = Author.Create(command.Name);
         await _authorRepository.AddAsync(author, cancellationToken);
-        _logger.LogInformation("Created author {AuthorId}.", author.Id);
+        _logger.LogInformation(LogEvents.AuthorCreated, "Created author {AuthorId}.", author.Id);
         return MapToDto(author);
     }
 
