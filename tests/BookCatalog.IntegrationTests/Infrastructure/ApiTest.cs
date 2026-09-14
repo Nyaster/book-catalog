@@ -20,6 +20,7 @@ public abstract class ApiTest(PostgresFixture postgres) : IClassFixture<Postgres
     private HttpClient? _client;
     protected HttpClient Client => _client ?? throw new InvalidOperationException("The test API has not started.");
     protected IServiceProvider Services => _application!.Services;
+    protected virtual bool CaptureLogs => false;
 
     protected virtual void ConfigureDatabase(DbContextOptionsBuilder options)
     {
@@ -32,7 +33,7 @@ public abstract class ApiTest(PostgresFixture postgres) : IClassFixture<Postgres
             _connectionString = postgres.ConnectionStringFor(_database);
             _databaseCreationAttempted = true;
             await postgres.CreateDatabaseAsync(_database);
-            _application = new CatalogApplication(_connectionString, ConfigureDatabase);
+            _application = new CatalogApplication(_connectionString, ConfigureDatabase, CaptureLogs);
             _application.UseKestrel(0);
             _application.ClientOptions.AllowAutoRedirect = false;
             _client = _application.CreateClient();
