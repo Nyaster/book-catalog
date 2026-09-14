@@ -4,7 +4,9 @@ using BookCatalog.Application.Authors.Services;
 using BookCatalog.Application.Books.Services;
 using BookCatalog.Api.ErrorHandling;
 using BookCatalog.Api.Logging;
+using BookCatalog.Api.Health;
 using BookCatalog.Infrastructure;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 using Microsoft.OpenApi;
 
@@ -31,6 +33,9 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
         builder.Logging.ClearProviders();
         builder.Services.AddCatalogLogging(builder.Configuration);
+        builder.Services.Configure<HostOptions>(options => options.ShutdownTimeout = TimeSpan.FromSeconds(30));
+        builder.Services.AddHealthChecks()
+            .AddCheck<ReadinessHealthCheck>("ready", timeout: TimeSpan.FromSeconds(3));
 
         builder.Services.AddControllers(options =>
         {
@@ -79,9 +84,13 @@ public class Program
 
         if (!app.Environment.IsDevelopment())
         {
-            app.UseHttpsRedirection();
+            app.UseWhen(context => context.Request.Path != "/health/live"
+                                   && context.Request.Path != "/health/ready",
+                branch => branch.UseHttpsRedirection());
         }
 
+        app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+        app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Name == "ready" });
         app.MapControllers();
         await app.Services.ApplyMigrationsAsync(app.Lifetime.ApplicationStopped);
         await app.RunAsync();
